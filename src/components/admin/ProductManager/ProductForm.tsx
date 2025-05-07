@@ -37,7 +37,8 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
   // Create CloudinaryImage objects from string URLs
   const createCloudinaryImages = (imageUrls: string[]): CloudinaryImage[] => {
-    return imageUrls.map(url => ({
+    return imageUrls.map((url, index) => ({
+      id: index, // Using index as temporary id
       url,
       product_id: product.id || ''
     }));

@@ -6,12 +6,30 @@ import { useOrder } from '@/lib/checkout/order-context';
 import { createOrderObject, sendOrderToWhatsApp, useIsMobile } from '@/lib/checkout/whatsapp-service';
 import { createOrder } from '@/lib/supabase/orders';
 import { toast } from "sonner";
+import { CartItem as LibCartItem } from '@/lib/cart/types';
+import { CartItem as TypeCartItem } from '@/lib/types';
 
 interface CheckoutButtonProps {
   whatsappPhone?: string;
   className?: string;
   onCheckoutSuccess?: (orderId: string) => void;
 }
+
+// Function to convert between cart item types
+const convertCartItems = (items: LibCartItem[]): TypeCartItem[] => {
+  return items.map(item => ({
+    id: item.id,
+    product: {
+      id: Number(item.product.id) || 0, // Convert string id to number or use 0 as fallback
+      name: item.product.name,
+      price: item.product.price,
+      description: item.product.description,
+      images: item.product.images,
+      stock: item.product.stock
+    },
+    quantity: item.quantity
+  }));
+};
 
 const CheckoutButton: React.FC<CheckoutButtonProps> = ({
   whatsappPhone,
@@ -32,8 +50,11 @@ const CheckoutButton: React.FC<CheckoutButtonProps> = ({
     setIsProcessing(true);
     
     try {
+      // Convert cart items to the expected format
+      const convertedItems = convertCartItems(items);
+      
       // Create the order object
-      const order = createOrderObject(items, totalPrice);
+      const order = createOrderObject(convertedItems, totalPrice);
       
       // Save order to Supabase
       const savedOrder = await createOrder(order);

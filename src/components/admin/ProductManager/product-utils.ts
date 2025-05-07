@@ -1,7 +1,7 @@
 
 import { Product, createProduct, updateProduct } from '@/lib/supabase';
 
-export function validateProduct(product: Partial<Product>, subcategoryId: number | null): { valid: boolean; message: string } {
+export function validateProduct(product: Partial<Product>, subcategoryId: string | null): { valid: boolean; message: string } {
   if (!product.name || product.name.trim() === '') {
     return { valid: false, message: 'Product name is required' };
   }
@@ -27,7 +27,7 @@ export function validateProduct(product: Partial<Product>, subcategoryId: number
 
 export async function saveProduct(
   product: Partial<Product>, 
-  subcategoryId: number,
+  subcategoryId: string,
   isEditing: boolean
 ): Promise<{ success: boolean; message: string }> {
   try {

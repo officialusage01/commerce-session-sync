@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Product } from '@/lib/supabase/types';
 
 interface ProductDialogControllerProps {
-  selectedSubcategory: number | null;
+  selectedSubcategory: string | null;
   onProductSaved: () => void;
 }
 
@@ -13,7 +13,7 @@ interface ProductDialogControllerReturn {
     onClose: () => void;
     product: Partial<Product>;
     isEditing: boolean;
-    subcategoryId: number | null;
+    subcategoryId: string | null;
     onSaved: () => void;
   };
   showDialog: boolean;
