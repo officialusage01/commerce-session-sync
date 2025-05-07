@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { getOrders, updateOrderStatus } from '@/lib/supabase/orders';
+import { getOrders, updateOrderStatus } from '@/lib/supabase/database';
 import { Order } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -46,7 +46,9 @@ const OrdersTab: React.FC = () => {
   const fetchOrders = async () => {
     setLoading(true);
     try {
+      console.log("Fetching orders for page:", currentPage);
       const fetchedOrders = await getOrders(currentPage, ordersPerPage);
+      console.log("Fetched orders:", fetchedOrders);
       setOrders(fetchedOrders);
     } catch (error) {
       console.error("Error fetching orders:", error);
@@ -306,7 +308,7 @@ const OrdersTab: React.FC = () => {
                         <TableCell>{item.productName}</TableCell>
                         <TableCell className="text-right">${item.price.toFixed(2)}</TableCell>
                         <TableCell className="text-right">{item.quantity}</TableCell>
-                        <TableCell className="text-right">${item.subtotal.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">${(item.price * item.quantity).toFixed(2)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

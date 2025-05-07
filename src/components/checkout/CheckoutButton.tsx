@@ -4,10 +4,10 @@ import { Button } from '@/components/ui/button';
 import { useCart } from '@/lib/cart';
 import { useOrder } from '@/lib/checkout/order-context';
 import { createOrderObject, sendOrderToWhatsApp, useIsMobile } from '@/lib/checkout/whatsapp-service';
-import { createOrder } from '@/lib/supabase/orders';
+import { createOrder } from '@/lib/supabase/database';
 import { toast } from "sonner";
 import { CartItem as LibCartItem } from '@/lib/cart/types';
-import { CartItem as TypeCartItem } from '@/lib/types';
+import { CartItem as TypeCartItem, Order } from '@/lib/types';
 
 interface CheckoutButtonProps {
   whatsappPhone?: string;
@@ -38,7 +38,7 @@ const CheckoutButton: React.FC<CheckoutButtonProps> = ({
 }) => {
   const { items, totalItems, totalPrice, checkout } = useCart();
   const { setCurrentOrder } = useOrder();
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const isMobile = useIsMobile();
   
   const handleCheckout = async () => {
@@ -60,8 +60,28 @@ const CheckoutButton: React.FC<CheckoutButtonProps> = ({
       const order = createOrderObject(convertedItems, totalPrice);
       console.log("Created order object:", order);
       
+      // Ensure order has all required fields according to the database schema
+      const orderToSave: Order = {
+        id: order.id,
+        items: order.items.map(item => ({
+          productId: typeof item.productId === 'string' ? parseInt(item.productId, 10) : item.productId,
+          productName: item.productName,
+          price: item.price,
+          quantity: item.quantity,
+          subtotal: item.subtotal
+        })),
+        total: order.total,
+        timestamp: new Date().toISOString(),
+        customerName: order.customerName,
+        customerEmail: order.customerEmail,
+        customerPhone: order.customerPhone,
+        status: 'pending'
+      };
+      
+      console.log("Order to save:", orderToSave);
+      
       // Save order to Supabase
-      const savedOrder = await createOrder(order);
+      const savedOrder = await createOrder(orderToSave);
       console.log("Saved order response:", savedOrder);
       
       if (!savedOrder) {
