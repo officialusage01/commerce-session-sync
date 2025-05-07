@@ -1,13 +1,15 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getCurrentUser, signOut } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
-import { Loader2, LogOut, Layers, Package, Grid, Home, MessageSquare } from 'lucide-react';
+import { Loader2, LogOut, Layers, Package, Grid, Home, MessageSquare, ShoppingBag } from 'lucide-react';
 import ProductsTab from './ProductsTab';
 import CategoriesTab from './CategoriesTab';
 import SubcategoriesTab from './SubcategoriesTab';
 import FeedbackTab from './FeedbackTab';
+import OrdersTab from './OrdersTab';
 
 const AdminLayout = () => {
   const [loading, setLoading] = useState(true);
@@ -117,6 +119,13 @@ const AdminLayout = () => {
               <MessageSquare className="mr-2 h-4 w-4" />
               Feedback
             </TabsTrigger>
+            <TabsTrigger 
+              value="orders"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-md"
+            >
+              <ShoppingBag className="mr-2 h-4 w-4" />
+              Orders
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="products" className="mt-0">
@@ -133,6 +142,10 @@ const AdminLayout = () => {
           
           <TabsContent value="feedback" className="mt-0">
             <FeedbackTab />
+          </TabsContent>
+          
+          <TabsContent value="orders" className="mt-0">
+            <OrdersTab />
           </TabsContent>
         </Tabs>
       </div>
