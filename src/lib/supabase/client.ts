@@ -1,18 +1,30 @@
-
 import { createClient } from '@supabase/supabase-js';
 
-// Supabase configuration
-const supabaseUrl = 'https://kfdmmtsahqikhhlwutcq.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZG1tdHNhaHFpa2hobHd1dGNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI4MDI1NTQsImV4cCI6MjA1ODM3ODU1NH0.asQvhdZ7uG8V358HYJva30UcE1HztD95wTXPb2APTmE';
+// Supabase client setup
+const supabaseUrl = 'https://ufvtilwrfixuirhmzdhj.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmdnRpbHdyZml4dWlyaG16ZGhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ1NjA5NjYsImV4cCI6MjA2MDEzNjk2Nn0.Xry-Wl4qqEhR4NM4bJ0vVZDERdjYoqSO9dYo19cnns4';
+const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmdnRpbHdyZml4dWlyaG16ZGhqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NDU2MDk2NiwiZXhwIjoyMDYwMTM2OTY2fQ.Xry-Wl4qqEhR4NM4bJ0vVZDERdjYoqSO9dYo19cnns4';
 
-// Initialize the Supabase client
-export const supabase = createClient(supabaseUrl, supabaseKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true
-  }
-});
+// Create Supabase clients
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-// Log client initialization for debugging
-console.log("Supabase client initialized with URL:", supabaseUrl);
+/**
+ * Convert a File object to a base64 string
+ * @param file The file to convert
+ * @returns A promise that resolves to the base64 string
+ */
+export const convertFileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        resolve(reader.result);
+      } else {
+        reject(new Error('Failed to convert file to base64'));
+      }
+    };
+    reader.onerror = (error) => reject(error);
+  });
+};

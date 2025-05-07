@@ -1,124 +1,105 @@
 
-import React, { useRef, useEffect } from "react";
-import { 
-  Dialog, 
+import React from 'react';
+import {
+  Dialog,
   DialogContent,
-  DialogTitle 
-} from "@/components/ui/dialog";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { X, ZoomIn, ZoomOut } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 
 interface ImageModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  isOpen: boolean;
+  onClose: () => void;
   imageUrl: string;
-  alt?: string;
-  hasMultipleImages?: boolean;
-  onNextImage?: () => void;
-  onPrevImage?: () => void;
-  currentIndex?: number;
-  totalImages?: number;
+  altText?: string;
 }
 
-export function ImageModal({ 
-  open, 
-  onOpenChange, 
-  imageUrl, 
-  alt = "Image",
-  hasMultipleImages = false,
-  onNextImage,
-  onPrevImage,
-  currentIndex = 0,
-  totalImages = 0
-}: ImageModalProps) {
-  // Handle key presses
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!open) return;
-      
-      if (e.key === "Escape") {
-        e.preventDefault();
-        onOpenChange(false);
-      } else if (hasMultipleImages) {
-        if (e.key === "ArrowRight" && onNextImage) {
-          e.preventDefault();
-          onNextImage();
-        } else if (e.key === "ArrowLeft" && onPrevImage) {
-          e.preventDefault();
-          onPrevImage();
-        }
-      }
-    };
+const ImageModal: React.FC<ImageModalProps> = ({
+  isOpen,
+  onClose,
+  imageUrl,
+  altText = 'Enlarged image'
+}) => {
+  const [zoom, setZoom] = React.useState(1);
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, onOpenChange, hasMultipleImages, onNextImage, onPrevImage]);
+  const handleZoomIn = () => {
+    setZoom(prev => Math.min(prev + 0.5, 3));
+  };
 
-  // Don't render if no image URL is provided
-  if (!imageUrl) return null;
+  const handleZoomOut = () => {
+    setZoom(prev => Math.max(prev - 0.5, 1));
+  };
+
+  const handleReset = () => {
+    setZoom(1);
+  };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl p-0 overflow-hidden bg-background/95 backdrop-blur-sm border-none sm:rounded-lg">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 overflow-hidden bg-black/90 border-none">
+        {/* Adding VisuallyHidden DialogTitle to fix accessibility warning */}
         <VisuallyHidden>
-          <DialogTitle>Image Viewer</DialogTitle>
+          <DialogTitle>Image Preview</DialogTitle>
         </VisuallyHidden>
         
-        <button
-          onClick={() => onOpenChange(false)}
-          className="absolute top-2 right-2 z-50 rounded-full p-2 bg-black/50 text-white hover:bg-black/70 transition-colors"
-          aria-label="Close"
-        >
-          <X size={20} />
-        </button>
-        
         <div className="relative w-full h-full flex items-center justify-center">
-          <img 
-            src={imageUrl} 
-            alt={alt} 
-            className="w-full h-full object-contain rounded"
-            style={{ maxHeight: "calc(100vh - 100px)" }}
-          />
+          <div 
+            className="overflow-auto max-h-[85vh] max-w-[85vw] relative"
+            style={{ cursor: zoom > 1 ? 'move' : 'default' }}
+            onClick={handleReset}
+          >
+            <img 
+              src={imageUrl} 
+              alt={altText} 
+              className="transition-transform duration-200"
+              style={{ 
+                transform: `scale(${zoom})`,
+                transformOrigin: 'center'
+              }}
+            />
+          </div>
           
-          {/* Carousel Navigation */}
-          {hasMultipleImages && onNextImage && onPrevImage && (
-            <>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute left-2 top-1/2 transform -translate-y-1/2 rounded-full bg-black/30 text-white hover:bg-black/50 p-1"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (onPrevImage) onPrevImage();
-                }}
-                aria-label="Previous image"
-              >
-                <ChevronLeft size={24} />
-              </Button>
-              
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 rounded-full bg-black/30 text-white hover:bg-black/50 p-1"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (onNextImage) onNextImage();
-                }}
-                aria-label="Next image"
-              >
-                <ChevronRight size={24} />
-              </Button>
-              
-              {totalImages > 1 && (
-                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
-                  {currentIndex + 1} / {totalImages}
-                </div>
-              )}
-            </>
-          )}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              className="rounded-full" 
+              onClick={(e) => {
+                e.stopPropagation();
+                handleZoomOut();
+              }}
+              disabled={zoom <= 1}
+            >
+              <ZoomOut className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              className="rounded-full" 
+              onClick={(e) => {
+                e.stopPropagation();
+                handleZoomIn();
+              }}
+              disabled={zoom >= 3}
+            >
+              <ZoomIn className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          {/* Only one close button */}
+          <button 
+            onClick={onClose}
+            className="absolute right-4 top-4 bg-background/80 rounded-full p-2 hover:bg-background transition-colors z-50"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
       </DialogContent>
     </Dialog>
   );
-}
+};
+
+export default ImageModal;

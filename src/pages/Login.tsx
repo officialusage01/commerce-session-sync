@@ -1,239 +1,200 @@
 
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import Button from '@/components/ui-components/Button';
-import { Shield, Mail, Lock } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
-import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+import { signIn, getCurrentUser, initializeDatabase, signOut } from '@/lib/supabase';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
+import { supabaseAdmin } from '@/lib/supabase/client';
 
-const Login: React.FC = () => {
+const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const { signIn, user } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
   const navigate = useNavigate();
-  const location = useLocation();
-
+  const { toast } = useToast();
+  
   useEffect(() => {
-    // Check for message in location state (e.g., from signup page)
-    if (location.state?.message) {
-      setMessage(location.state.message);
-    }
-    
-    // If user is already logged in, redirect to dashboard
-    if (user) {
-      navigate('/dashboard');
-    }
-  }, [location, user, navigate]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
-
-    try {
-      const { error } = await signIn(email, password);
-      
-      if (error) {
-        setError(error.message);
-        return;
+    const checkUser = async () => {
+      setCheckingSession(true);
+      try {
+        const { data } = await getCurrentUser();
+        if (data.user) {
+          navigate('/admin');
+        }
+      } catch (error) {
+        console.error('Session check error:', error);
+      } finally {
+        setCheckingSession(false);
       }
-      
-      navigate('/dashboard');
-    } catch (error: any) {
-      setError(error.message || 'An error occurred during login');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleForgotPassword = async (e: React.FormEvent) => {
+    };
+    
+    checkUser();
+    
+    // Try to ensure tables are created
+    initializeDatabase();
+  }, [navigate]);
+  
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) {
-      setError('Please enter your email address');
+    
+    if (!email || !password) {
+      toast({
+        title: 'Error',
+        description: 'Please enter both email and password',
+        variant: 'destructive',
+      });
       return;
     }
-
-    setError('');
-    setForgotPasswordLoading(true);
-
+    
+    setLoading(true);
+    
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-
+      const { data, error } = await signIn(email, password);
+      
       if (error) {
-        throw error;
+        // If login fails and it's the demo account, try to create it
+        if (email === 'admin@shopstory.com' && password === 'shopstory123') {
+          // Try to create admin user and tables
+          await initializeDatabase();
+          
+          // Wait a bit for tables to be created
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          // Try to create admin user using admin client
+          const { data: signUpData, error: signUpError } = await supabaseAdmin.auth.signUp({
+            email: 'admin@shopstory.com',
+            password: 'shopstory123',
+            options: {
+              data: { role: 'admin' }
+            }
+          });
+          
+          if (signUpError) {
+            toast({
+              title: 'Setup Failed',
+              description: 'Could not create admin account. Please try again later.',
+              variant: 'destructive',
+            });
+            return;
+          }
+          
+          if (signUpData.user) {
+            toast({
+              title: 'Setup Complete',
+              description: 'Admin account created. Please try logging in again.',
+            });
+            return;
+          }
+        }
+        
+        toast({
+          title: 'Login Failed',
+          description: error.message,
+          variant: 'destructive',
+        });
+        console.error('Login error details:', error);
+      } else if (data.user) {
+        // Check if user has admin role in their metadata
+        const userRole = data.user.user_metadata?.role;
+        
+        if (userRole !== 'admin') {
+          toast({
+            title: 'Access Denied',
+            description: 'You do not have admin privileges.',
+            variant: 'destructive',
+          });
+          await signOut();
+          return;
+        }
+        
+        toast({
+          title: 'Login Successful',
+          description: 'You have been logged in successfully',
+        });
+        navigate('/admin');
       }
-
-      setShowForgotPassword(false);
-      setMessage('Password reset email has been sent. Please check your inbox.');
-    } catch (error: any) {
-      setError(error.message || 'Failed to send password reset email');
+    } catch (error) {
+      console.error('Login error:', error);
+      toast({
+        title: 'Error',
+        description: 'An unexpected error occurred',
+        variant: 'destructive',
+      });
     } finally {
-      setForgotPasswordLoading(false);
+      setLoading(false);
     }
   };
-
-  // If user is already logged in, don't show login form
-  if (user) {
-    return null; // Return early while redirecting
-  }
-
-  return (
-    <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 animate-fade-in">
-      <div className="w-full max-w-md">
-        <div className="glass rounded-xl p-8 shadow-lg border border-border/40 animate-blur-in">
-          <div className="text-center mb-8">
-            <div className="mx-auto h-12 w-12 bg-primary/10 flex items-center justify-center rounded-full">
-              <Shield className="h-8 w-8 text-primary" />
-            </div>
-            <h2 className="mt-6 text-3xl font-bold text-foreground">
-              {showForgotPassword ? 'Reset Password' : 'Sign in to your account'}
-            </h2>
-            {!showForgotPassword && (
-              <p className="mt-2 text-sm text-muted-foreground">
-                Or{' '}
-                <Link to="/signup" className="font-medium text-primary hover:text-primary/90">
-                  create a new account
-                </Link>
-              </p>
-            )}
-          </div>
-
-          {message && (
-            <div className="mb-4 p-3 rounded-md bg-green-50 text-green-600 text-sm animate-slide-in">
-              {message}
-            </div>
-          )}
-
-          {error && (
-            <div className="mb-4 p-3 rounded-md bg-red-50 text-red-600 text-sm animate-slide-in">
-              {error}
-            </div>
-          )}
-
-          {showForgotPassword ? (
-            <form className="space-y-6" onSubmit={handleForgotPassword}>
-              <div>
-                <label htmlFor="reset-email" className="block text-sm font-medium text-foreground mb-1">
-                  Email address
-                </label>
-                <div className="relative rounded-md shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Mail className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <input
-                    id="reset-email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-2 rounded-md border border-input focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all bg-background"
-                    placeholder="Your email"
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-col space-y-3">
-                <Button
-                  type="submit"
-                  className="w-full"
-                  isLoading={forgotPasswordLoading}
-                >
-                  Send reset instructions
-                </Button>
-                <Button
-                  type="button"
-                  className="w-full"
-                  variant="outline"
-                  onClick={() => setShowForgotPassword(false)}
-                >
-                  Back to login
-                </Button>
-              </div>
-            </form>
-          ) : (
-            <form className="space-y-6" onSubmit={handleSubmit}>
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1">
-                  Email address
-                </label>
-                <div className="relative rounded-md shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Mail className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-2 rounded-md border border-input focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all bg-background"
-                    placeholder="Your email"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label htmlFor="password" className="block text-sm font-medium text-foreground">
-                    Password
-                  </label>
-                  <button
-                    type="button"
-                    className="text-sm font-medium text-primary hover:text-primary/90 transition-colors"
-                    onClick={() => setShowForgotPassword(true)}
-                  >
-                    Forgot password?
-                  </button>
-                </div>
-                <div className="relative rounded-md shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Lock className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    autoComplete="current-password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-2 rounded-md border border-input focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all bg-background"
-                    placeholder="Your password"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Button
-                  type="submit"
-                  className="w-full"
-                  isLoading={isLoading}
-                >
-                  Sign in
-                </Button>
-              </div>
-            </form>
-          )}
-
-          <div className="mt-6 text-center">
-            <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Return to Home
-            </Link>
-          </div>
+  
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="flex flex-col items-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+          <p>Checking authentication status...</p>
         </div>
       </div>
+    );
+  }
+  
+  return (
+    <div className="min-h-screen flex items-center justify-center px-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="text-2xl">Admin Login</CardTitle>
+          <CardDescription>
+            Sign in to access the admin dashboard
+          </CardDescription>
+          <div className="mt-2 p-2 bg-primary/10 rounded-md text-sm">
+            <strong>Demo Credentials:</strong><br />
+            Email: admin@shopstory.com<br />
+            Password: shopstory123
+          </div>
+        </CardHeader>
+        <form onSubmit={handleLogin}>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="admin@shopstory.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Signing In...
+                </>
+              ) : 'Sign In'}
+            </Button>
+          </CardFooter>
+        </form>
+      </Card>
     </div>
   );
 };

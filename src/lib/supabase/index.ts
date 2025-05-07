@@ -1,69 +1,114 @@
-
-// Re-export the Supabase client
-export { supabase } from './client';
-
-// Re-export auth methods
+// Re-export everything from the modules
+export { supabase, convertFileToBase64 } from './client';
+export type { Category, Subcategory, Product } from './types';
+export { signIn, signOut, getCurrentUser, setupAdminUser } from './auth';
 export { 
-  signUp, 
-  signIn, 
-  signOut, 
-  getCurrentUser 
-} from './auth';
-
-// Re-export database methods
-export {
-  createProfilesTable,
-  updateUserProfile,
-  deleteUser,
-  getUserRole,
-  ensureTestAdminUser
+  getCategories, 
+  getSubcategories, 
+  getProducts,
+  getFeaturedProducts,
+  getProduct,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  createSubcategory,
+  updateSubcategory,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  createSQLFunctions,
+  setupDatabase,
+  initializeDatabase
 } from './database';
+export { initializeDemoData } from './demo-data';
+export { uploadImage } from './upload';
 
-// Re-export RLS utilities
-export { checkRlsEnabled } from './database/setup-rls';
+// Initialize database when importing this module
+import { createSQLFunctions, setupDatabase, initializeDatabase } from './database';
+import { initializeDemoData } from './demo-data';
 
-// Re-export admin methods
-export { createAdminUser } from './admin';
+// Check if we've already attempted initialization
+const INIT_FLAG = 'shopstory_db_initialized';
 
-// Initialize database and admin user
-import { createProfilesTable } from './database';
-import { createAdminUser } from './admin';
-import { supabase } from './client';
+// Run the setup and initialization with better sequencing
+console.log('Starting database initialization');
 
-// Create tables and setup
 const initDatabase = async () => {
   try {
-    // Try to create the profiles table
-    await createProfilesTable();
+    // Check if we've already run initialization this session
+    if (sessionStorage.getItem(INIT_FLAG)) {
+      console.log('Database initialization already attempted this session');
+      return;
+    }
     
-    // Create stock_images table if it doesn't exist
-    const { error: stockImagesError } = await supabase.rpc('create_stock_images_table');
-    if (stockImagesError) {
-      console.error('Failed to initialize stock_images table:', stockImagesError);
+    // Mark as initialized to prevent multiple attempts
+    sessionStorage.setItem(INIT_FLAG, 'true');
+    
+    const sqlFunctionsCreated = await createSQLFunctions();
+    
+    if (sqlFunctionsCreated) {
+      console.log('SQL functions created successfully, setting up database');
+      await setupDatabase();
       
-      // If RPC fails, try a direct SQL query as fallback
-      const { error: sqlError } = await supabase.from('stock_images').select('id').limit(1);
-      if (sqlError && sqlError.code !== '42P01') { // 42P01 means relation doesn't exist
-        console.error('Failed to access stock_images table:', sqlError);
-      }
+      // Give more time for tables to be created before inserting demo data
+      setTimeout(async () => {
+        try {
+          await initializeDemoData();
+          console.log('Demo data initialization attempted');
+        } catch (error) {
+          console.error('Error initializing demo data:', error);
+        }
+      }, 2000);
+    } else {
+      console.warn('Failed to create SQL functions, trying manual table creation');
+      setTimeout(async () => {
+        try {
+          const tablesCreated = await initializeDatabase();
+          
+          if (tablesCreated) {
+            console.log('Tables created manually, initializing demo data');
+            setTimeout(async () => {
+              try {
+                await initializeDemoData();
+                console.log('Demo data initialization attempted');
+              } catch (error) {
+                console.error('Error initializing demo data:', error);
+              }
+            }, 2000);
+          } else {
+            console.warn('Failed to create tables manually, falling back to local storage');
+            // We'll continue using localStorage fallback in the data access methods
+          }
+        } catch (error) {
+          console.error('Error during manual table creation:', error);
+        }
+      }, 2000);
     }
-    
-    // Update stock_images table if needed
-    const { error: updateStockImagesError } = await supabase.rpc('update_stock_images_table');
-    if (updateStockImagesError) {
-      console.error('Failed to update stock_images table:', updateStockImagesError);
-    }
-  } catch (err) {
-    console.error('Failed to initialize database tables:', err);
+  } catch (error) {
+    console.error('Database initialization error:', error);
   }
 };
 
-// Initialize tables
+// Start the initialization process
 initDatabase();
 
-// Try to create admin user after initialization
-setTimeout(() => {
-  createAdminUser().catch(err => {
-    console.error('Failed to create admin user:', err);
-  });
-}, 2000); // Wait for 2 seconds to ensure profiles table is created first
+export const initializeSupabase = async () => {
+  try {
+    // Create SQL functions
+    const functionsCreated = await createSQLFunctions();
+    if (!functionsCreated) {
+      throw new Error('Failed to create SQL functions');
+    }
+
+    // Initialize database
+    const tablesCreated = await initializeDatabase();
+    if (!tablesCreated) {
+      throw new Error('Failed to initialize database');
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error initializing Supabase:', error);
+    return false;
+  }
+};
