@@ -20,11 +20,11 @@ const convertCartItems = (items: LibCartItem[]): TypeCartItem[] => {
   return items.map(item => ({
     id: item.id,
     product: {
-      id: Number(item.product.id) || 0, // Convert string id to number or use 0 as fallback
+      id: Number(item.product.id) || 0, // Convert string id to number
       name: item.product.name,
       price: item.product.price,
-      description: item.product.description,
-      images: item.product.images,
+      description: item.product.description || '',
+      images: item.product.images || [],
       stock: item.product.stock
     },
     quantity: item.quantity
@@ -50,14 +50,19 @@ const CheckoutButton: React.FC<CheckoutButtonProps> = ({
     setIsProcessing(true);
     
     try {
+      console.log("Starting checkout process...");
+      
       // Convert cart items to the expected format
       const convertedItems = convertCartItems(items);
+      console.log("Converted items:", convertedItems);
       
       // Create the order object
       const order = createOrderObject(convertedItems, totalPrice);
+      console.log("Created order object:", order);
       
       // Save order to Supabase
       const savedOrder = await createOrder(order);
+      console.log("Saved order response:", savedOrder);
       
       if (!savedOrder) {
         throw new Error("Failed to save order");

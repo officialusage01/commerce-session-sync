@@ -1,3 +1,4 @@
+
 // Re-export everything from the modules
 export { supabase, convertFileToBase64 } from './client';
 export type { Category, Subcategory, Product } from './types';
@@ -16,6 +17,10 @@ export {
   createProduct,
   updateProduct,
   deleteProduct,
+  createOrder,
+  getOrders,
+  getOrderById,
+  updateOrderStatus,
   createSQLFunctions,
   setupDatabase,
   initializeDatabase

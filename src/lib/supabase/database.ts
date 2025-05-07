@@ -1,3 +1,4 @@
+
 import { supabase } from './client';
 import { Category, Subcategory, Product } from './types';
 import { handleDatabaseError, getLocalData, saveLocalData } from './db-utils';
@@ -21,3 +22,11 @@ export {
   updateProduct, 
   deleteProduct 
 } from './product-operations';
+
+// Re-export from orders module
+export {
+  createOrder,
+  getOrders,
+  getOrderById,
+  updateOrderStatus
+} from './orders';

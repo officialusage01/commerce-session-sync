@@ -39,6 +39,13 @@ export const initializeDatabase = async (): Promise<boolean> => {
       return false;
     }
 
+    // Create orders table
+    const { error: ordersError } = await supabase.rpc('create_orders_table');
+    if (ordersError) {
+      console.error('Error creating orders table:', ordersError);
+      // Don't return false here, continue with other tables
+    }
+
     console.log('Database initialized successfully');
     return true;
   } catch (error) {
@@ -246,6 +253,50 @@ export const createSQLFunctions = async (): Promise<boolean> => {
       $$ LANGUAGE plpgsql;
     `;
 
+    // Create function for orders table
+    const createOrdersFunction = `
+      CREATE OR REPLACE FUNCTION create_orders_table()
+      RETURNS void AS $$
+      BEGIN
+        CREATE TABLE IF NOT EXISTS orders (
+          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+          items JSONB NOT NULL DEFAULT '[]'::jsonb,
+          total NUMERIC(10,2) NOT NULL DEFAULT 0,
+          timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          customer_name TEXT,
+          customer_email TEXT,
+          customer_phone TEXT,
+          status TEXT DEFAULT 'pending',
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+        
+        -- Create indexes for better performance
+        CREATE INDEX IF NOT EXISTS idx_orders_timestamp ON orders(timestamp);
+        CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+        
+        -- Enable RLS
+        ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+        
+        -- Drop existing policies if they exist
+        DROP POLICY IF EXISTS "Allow public read access to orders" ON orders;
+        DROP POLICY IF EXISTS "Allow authenticated insert to orders" ON orders;
+        DROP POLICY IF EXISTS "Allow authenticated update to orders" ON orders;
+        
+        -- Create RLS policies
+        CREATE POLICY "Allow public read access to orders" ON orders
+          FOR SELECT USING (true);
+        
+        CREATE POLICY "Allow authenticated insert to orders" ON orders
+          FOR INSERT WITH CHECK (true);
+        
+        CREATE POLICY "Allow authenticated update to orders" ON orders
+          FOR UPDATE USING (auth.role() = 'authenticated')
+          WITH CHECK (auth.role() = 'authenticated');
+      END;
+      $$ LANGUAGE plpgsql;
+    `;
+
     const dropCartItemsFunction = `
       CREATE OR REPLACE FUNCTION drop_cart_items_table()
       RETURNS void AS $$
@@ -280,6 +331,18 @@ export const createSQLFunctions = async (): Promise<boolean> => {
     // Create the cart items table
     const { error: cartItemsError } = await supabase.rpc('create_cart_items_table');
     if (cartItemsError) throw cartItemsError;
+
+    // Create the orders function
+    const { error: ordersFunctionError } = await supabase.rpc('create_function', {
+      sql_function: createOrdersFunction
+    });
+    if (ordersFunctionError) throw ordersFunctionError;
+
+    // Create the orders table
+    const { error: ordersError } = await supabase.rpc('create_orders_table');
+    if (ordersError) {
+      console.error('Error creating orders table:', ordersError);
+    }
 
     return true;
   } catch (error) {
