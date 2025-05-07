@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useCart } from '@/lib/cart';
 import { useOrder } from '@/lib/checkout/order-context';
 import { createOrderObject, sendOrderToWhatsApp, useIsMobile } from '@/lib/checkout/whatsapp-service';
-import { createOrder } from '@/lib/supabase/database';
+import { createOrder } from '@/lib/supabase/orders';
 import { toast } from "sonner";
 import { CartItem as LibCartItem } from '@/lib/cart/types';
 import { CartItem as TypeCartItem, Order } from '@/lib/types';
@@ -56,8 +56,8 @@ const CheckoutButton: React.FC<CheckoutButtonProps> = ({
       const convertedItems = convertCartItems(items);
       console.log("Converted items:", convertedItems);
       
-      // Create the order object
-      const order = createOrderObject(convertedItems, totalPrice);
+      // Create the order object (now async)
+      const order = await createOrderObject(convertedItems, totalPrice);
       console.log("Created order object:", order);
       
       // Ensure order has all required fields according to the database schema

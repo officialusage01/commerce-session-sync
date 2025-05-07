@@ -1,13 +1,60 @@
 
 import { CartItem, Order, OrderItem } from '../types';
+import { supabase } from '../supabase/client';
 
 /**
- * Generate a unique order ID
+ * Generate a unique order ID with format [YYMM][SEQUENCE]
+ * YY = Year (last 2 digits)
+ * MM = Month
+ * SEQUENCE = 6-digit sequential number
+ * Example: 2505000001 (First order in May 2025)
  */
-export function generateOrderId(): string {
-  const timestamp = new Date().getTime().toString(36);
-  const randomStr = Math.random().toString(36).substring(2, 8).toUpperCase();
-  return `ORD-${timestamp}-${randomStr}`;
+export async function generateOrderId(): Promise<string> {
+  const now = new Date();
+  const yearMonth = `${String(now.getFullYear()).slice(-2)}${String(now.getMonth() + 1).padStart(2, '0')}`;
+  
+  try {
+    // Get current sequence from database
+    const { data, error } = await supabase
+      .from('order_sequences')
+      .select('current_sequence')
+      .single();
+    
+    if (error && error.code !== 'PGSQL_RELATION_DOES_NOT_EXIST') {
+      console.error('Error fetching order sequence:', error);
+      throw new Error('Failed to generate order ID');
+    }
+    
+    let sequence = 1;
+    
+    // If we have a record, increment it
+    if (data) {
+      sequence = data.current_sequence + 1;
+    }
+    
+    // Update the sequence in the database
+    const { error: updateError } = await supabase
+      .from('order_sequences')
+      .upsert({ id: 1, current_sequence: sequence })
+      .select();
+    
+    if (updateError) {
+      console.error('Error updating sequence:', updateError);
+      throw new Error('Failed to update order sequence');
+    }
+    
+    // Format the sequence as a 6-digit number
+    const sequenceFormatted = String(sequence).padStart(6, '0');
+    
+    // Combine yearMonth and sequence to form the orderID
+    return `${yearMonth}${sequenceFormatted}`;
+  } catch (error) {
+    console.error('Error generating order ID:', error);
+    // Fallback to a timestamp-based ID if database access fails
+    const timestamp = now.getTime();
+    const randomDigits = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    return `${yearMonth}${randomDigits}${timestamp % 1000}`;
+  }
 }
 
 /**
@@ -62,20 +109,21 @@ export function createOrderObject(
   cartItems: CartItem[], 
   totalPrice: number, 
   customerInfo?: { name?: string; email?: string; phone?: string }
-): Order {
-  const orderId = generateOrderId();
-  const orderItems = prepareOrderItems(cartItems);
-  
-  return {
-    id: orderId,
-    items: orderItems,
-    total: totalPrice,
-    timestamp: new Date().toISOString(),
-    customerName: customerInfo?.name,
-    customerEmail: customerInfo?.email,
-    customerPhone: customerInfo?.phone,
-    status: 'pending'
-  };
+): Promise<Order> {
+  return generateOrderId().then(orderId => {
+    const orderItems = prepareOrderItems(cartItems);
+    
+    return {
+      id: orderId,
+      items: orderItems,
+      total: totalPrice,
+      timestamp: new Date().toISOString(),
+      customerName: customerInfo?.name,
+      customerEmail: customerInfo?.email,
+      customerPhone: customerInfo?.phone,
+      status: 'pending'
+    };
+  });
 }
 
 /**
