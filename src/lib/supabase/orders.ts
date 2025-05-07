@@ -11,6 +11,7 @@ export async function createOrder(order: Order): Promise<Order | null> {
     
     // Prepare the order object for database insertion
     const orderData = {
+      id: order.id, // Make sure we're explicitly including the ID
       items: order.items,
       total: order.total,
       timestamp: order.timestamp || new Date().toISOString(),

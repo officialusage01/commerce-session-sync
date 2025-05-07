@@ -20,7 +20,7 @@ const convertCartItems = (items: LibCartItem[]): TypeCartItem[] => {
   return items.map(item => ({
     id: item.id,
     product: {
-      id: Number(item.product.id) || 0, // Convert string id to number
+      id: Number(item.product.id) || 0,
       name: item.product.name,
       price: item.product.price,
       description: item.product.description || '',
@@ -60,9 +60,9 @@ const CheckoutButton: React.FC<CheckoutButtonProps> = ({
       const order = await createOrderObject(convertedItems, totalPrice);
       console.log("Created order object:", order);
       
-      // Ensure order has all required fields according to the database schema
+      // Fix potential undefined values that could cause database issues
       const orderToSave: Order = {
-        id: order.id,
+        id: order.id, // Ensure ID is correctly passed
         items: order.items.map(item => ({
           productId: typeof item.productId === 'string' ? parseInt(item.productId, 10) : item.productId,
           productName: item.productName,
@@ -72,9 +72,9 @@ const CheckoutButton: React.FC<CheckoutButtonProps> = ({
         })),
         total: order.total,
         timestamp: new Date().toISOString(),
-        customerName: order.customerName,
-        customerEmail: order.customerEmail,
-        customerPhone: order.customerPhone,
+        customerName: order.customerName && typeof order.customerName === 'object' ? null : order.customerName,
+        customerEmail: order.customerEmail && typeof order.customerEmail === 'object' ? null : order.customerEmail,
+        customerPhone: order.customerPhone && typeof order.customerPhone === 'object' ? null : order.customerPhone,
         status: 'pending'
       };
       

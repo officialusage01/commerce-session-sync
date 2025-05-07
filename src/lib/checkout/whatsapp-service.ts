@@ -1,4 +1,3 @@
-
 import { CartItem, Order, OrderItem } from '../types';
 import { supabase } from '../supabase/client';
 
@@ -14,37 +13,16 @@ export async function generateOrderId(): Promise<string> {
   const yearMonth = `${String(now.getFullYear()).slice(-2)}${String(now.getMonth() + 1).padStart(2, '0')}`;
   
   try {
-    // Get current sequence from database
-    const { data, error } = await supabase
-      .from('order_sequences')
-      .select('current_sequence')
-      .single();
+    // Call the database function to get next sequence
+    const { data, error } = await supabase.rpc('increment_order_sequence');
     
-    if (error && error.code !== 'PGSQL_RELATION_DOES_NOT_EXIST') {
-      console.error('Error fetching order sequence:', error);
-      throw new Error('Failed to generate order ID');
-    }
-    
-    let sequence = 1;
-    
-    // If we have a record, increment it
-    if (data) {
-      sequence = data.current_sequence + 1;
-    }
-    
-    // Update the sequence in the database
-    const { error: updateError } = await supabase
-      .from('order_sequences')
-      .upsert({ id: 1, current_sequence: sequence })
-      .select();
-    
-    if (updateError) {
-      console.error('Error updating sequence:', updateError);
-      throw new Error('Failed to update order sequence');
+    if (error) {
+      console.error('Error incrementing sequence:', error);
+      throw error;
     }
     
     // Format the sequence as a 6-digit number
-    const sequenceFormatted = String(sequence).padStart(6, '0');
+    const sequenceFormatted = String(data).padStart(6, '0');
     
     // Combine yearMonth and sequence to form the orderID
     return `${yearMonth}${sequenceFormatted}`;
@@ -105,12 +83,13 @@ export function prepareOrderItems(cartItems: CartItem[]): OrderItem[] {
 /**
  * Create order object from cart
  */
-export function createOrderObject(
+export async function createOrderObject(
   cartItems: CartItem[], 
   totalPrice: number, 
   customerInfo?: { name?: string; email?: string; phone?: string }
 ): Promise<Order> {
-  return generateOrderId().then(orderId => {
+  try {
+    const orderId = await generateOrderId();
     const orderItems = prepareOrderItems(cartItems);
     
     return {
@@ -118,12 +97,15 @@ export function createOrderObject(
       items: orderItems,
       total: totalPrice,
       timestamp: new Date().toISOString(),
-      customerName: customerInfo?.name,
-      customerEmail: customerInfo?.email,
-      customerPhone: customerInfo?.phone,
+      customerName: customerInfo?.name || null,
+      customerEmail: customerInfo?.email || null,
+      customerPhone: customerInfo?.phone || null,
       status: 'pending'
     };
-  });
+  } catch (error) {
+    console.error('Error creating order object:', error);
+    throw error;
+  }
 }
 
 /**
