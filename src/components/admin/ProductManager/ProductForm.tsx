@@ -40,7 +40,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
     return imageUrls.map((url, index) => ({
       id: index, // Using index as temporary id
       url,
-      product_id: product.id || ''
+      product_id: Number(product.id) || 0 // Convert string id to number
     }));
   };
 
@@ -120,7 +120,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
             }}
             multiple={true}
             maxImages={10}
-            productId={product.id || ''}
+            productId={Number(product.id) || 0} // Convert string id to number
           />
         </div>
       </div>

@@ -11,7 +11,7 @@ interface ProductDialogProps {
   onClose: () => void;
   product: Partial<Product>;
   isEditing: boolean;
-  subcategoryId: number | null;
+  subcategoryId: string | null;
   onSaved: () => void;
 }
 
