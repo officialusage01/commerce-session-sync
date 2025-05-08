@@ -38,8 +38,11 @@ const ProductForm: React.FC<ProductFormProps> = ({
   // Create CloudinaryImage objects from string URLs
   const createCloudinaryImages = (imageUrls: string[]): CloudinaryImage[] => {
     return imageUrls.map((url, index) => ({
-      id: index, // Using index as temporary id
+      id: index.toString(), // Using index as temporary id (as string)
       url,
+      secure_url: url, // Use URL as secure_url
+      public_id: `temp-${index}`, // Temporary public_id
+      original_filename: `image-${index}`, // Temporary filename
       product_id: Number(product.id) || 0 // Convert string id to number
     }));
   };
@@ -48,12 +51,15 @@ const ProductForm: React.FC<ProductFormProps> = ({
   const handleImagesChange = (cloudinaryImages: CloudinaryImage[]) => {
     console.log('ProductForm: handleImagesChange called with', cloudinaryImages.length, 'images');
     // Extract URLs from CloudinaryImage objects and update the product
-    const imageUrls = cloudinaryImages.map(img => img.url);
+    const imageUrls = cloudinaryImages.map(img => img.url || img.secure_url || '').filter(Boolean);
     handleInputChange('images', imageUrls);
+    
+    // Also update image_urls for compatibility
+    handleInputChange('image_urls', imageUrls);
   };
 
   // Convert product.images to compatible format for ImageUploader
-  const imageObjects: CloudinaryImage[] = product.images && Array.isArray(product.images)
+  const imageObjects: CloudinaryImage[] = (product.images && Array.isArray(product.images))
     ? createCloudinaryImages(product.images as string[])
     : [];
 

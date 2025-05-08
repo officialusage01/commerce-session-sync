@@ -1,82 +1,85 @@
 
-import { supabase, supabaseAdmin } from './client';
+import { supabase } from './supabase';
 
 /**
- * Signs in a user with email and password
+ * Sign in with email and password
  */
 export async function signIn(email: string, password: string) {
-  return await supabase.auth.signInWithPassword({
-    email,
-    password
-  });
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error signing in:', error);
+    return { data: null, error };
+  }
 }
 
 /**
- * Signs out the current user
+ * Sign up with email and password
+ */
+export async function signUp(email: string, password: string) {
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error signing up:', error);
+    return { data: null, error };
+  }
+}
+
+/**
+ * Sign out the current user
  */
 export async function signOut() {
-  return await supabase.auth.signOut();
+  try {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+    return { error: null };
+  } catch (error) {
+    console.error('Error signing out:', error);
+    return { error };
+  }
 }
 
 /**
- * Gets the current authenticated user
+ * Get the current session
  */
-export async function getCurrentUser() {
-  return await supabase.auth.getUser();
+export async function getSession() {
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) throw error;
+    return { session: data.session, error: null };
+  } catch (error) {
+    console.error('Error getting session:', error);
+    return { session: null, error };
+  }
 }
 
 /**
- * Sets up an admin user (for demo purposes)
+ * Check if a user is an admin
  */
-export const setupAdminUser = async () => {
+export async function isAdmin(userId: string) {
   try {
-    // First check if user exists using admin client
-    const { data: existingUser } = await supabaseAdmin.auth.signInWithPassword({
-      email: 'admin@shopstory.com',
-      password: 'shopstory123'
-    });
-    
-    if (existingUser.user) {
-      console.log('Admin user already exists');
-      return;
-    }
-    
-    // Create admin user using admin client
-    const { data: signUpData, error: signUpError } = await supabaseAdmin.auth.signUp({
-      email: 'admin@shopstory.com',
-      password: 'shopstory123',
-      options: {
-        data: { role: 'admin' }
-      }
-    });
-    
-    if (signUpError) {
-      console.error('Error creating admin user:', signUpError);
-      return;
-    }
-
-    if (signUpData.user) {
-      console.log('Admin user created successfully');
-    }
+    const { data, error } = await supabase
+      .from('admins')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+      
+    if (error && error.code !== 'PGRST116') throw error;
+    return { isAdmin: !!data, error: null };
   } catch (error) {
-    console.error('Setup admin user error:', error);
+    console.error('Error checking admin status:', error);
+    return { isAdmin: false, error };
   }
-};
-
-/**
- * Initialize database with tables and demo data
- */
-export const initializeDatabase = async () => {
-  try {
-    // Create tables if they don't exist
-    console.log('Initializing database...');
-    
-    // The actual implementation would typically call database setup functions
-    // This is a placeholder function that would be implemented in db-setup.ts
-    
-    return true;
-  } catch (error) {
-    console.error('Database initialization error:', error);
-    return false;
-  }
-};
+}

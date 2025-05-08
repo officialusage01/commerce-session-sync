@@ -43,11 +43,12 @@ export interface ProductWithRelations extends Product {
 
 // Add common types used throughout the application
 export interface CloudinaryImage {
-  public_id: string;
-  secure_url: string;
-  url?: string; // Added url field used in various components
-  original_filename: string;
-  product_id?: string | number; // Added for compatibility with existing code
+  public_id?: string; // Made optional
+  secure_url?: string; // Made optional
+  url?: string; // Url can be used as alternative to secure_url
+  original_filename?: string; // Made optional
+  product_id?: string | number;
+  id?: string | number; // Added id field used in components
 }
 
 // Add FilterOptions type that's referenced in components
@@ -57,4 +58,5 @@ export interface FilterOptions {
   stockStatus: 'all' | 'in-stock' | 'out-of-stock';
   categories: string[];
   subcategories: string[];
+  filterCount?: number; // Added filter count used in components
 }

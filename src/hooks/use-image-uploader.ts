@@ -62,7 +62,11 @@ export const useImageUploader = ({
         const newImages = uploadedUrls.map(url => ({
           url,
           product_id: productId,
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
+          // Adding required CloudinaryImage properties with empty defaults
+          public_id: '',
+          secure_url: url, // Use the URL as secure_url
+          original_filename: ''
         })) as CloudinaryImage[];
         
         const updatedImages = [...images, ...newImages];

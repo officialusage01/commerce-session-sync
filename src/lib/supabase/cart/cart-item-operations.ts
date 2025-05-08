@@ -1,6 +1,7 @@
 
 import { supabase } from '../client';
 import { CartItem } from './types';
+import { Product } from '../types';
 
 /**
  * Checks if an item already exists in the user's cart
@@ -21,6 +22,7 @@ export async function checkExistingCartItem(userId: string, productId: string): 
         subcategory_id,
         stock,
         images,
+        image_urls,
         created_at,
         updated_at
       )
@@ -62,6 +64,7 @@ export async function updateExistingCartItem(existingItem: any, additionalQuanti
         subcategory_id,
         stock,
         images,
+        image_urls,
         created_at,
         updated_at
       )
@@ -80,11 +83,22 @@ export async function updateExistingCartItem(existingItem: any, additionalQuanti
   
   console.log('Cart Operations - Item updated successfully:', updatedItem);
 
+  // Ensure the product has image_urls property (use images if available or empty array)
+  const productData = Array.isArray(updatedItem.product) 
+    ? updatedItem.product[0] 
+    : updatedItem.product;
+    
+  // Create a valid Product object with all required properties
+  const product: Product = {
+    ...productData,
+    image_urls: productData.image_urls || productData.images || []
+  };
+
   return {
     id: updatedItem.id,
     product_id: updatedItem.product_id,
     quantity: updatedItem.quantity,
-    product: Array.isArray(updatedItem.product) ? updatedItem.product[0] : updatedItem.product
+    product
   };
 }
 
@@ -110,6 +124,7 @@ export async function addNewCartItem(userId: string, productId: string, quantity
         subcategory_id,
         stock,
         images,
+        image_urls,
         created_at,
         updated_at
       )
@@ -128,10 +143,19 @@ export async function addNewCartItem(userId: string, productId: string, quantity
   
   console.log('Cart Operations - Item added successfully:', data);
 
+  // Ensure the product has image_urls property
+  const productData = Array.isArray(data.product) ? data.product[0] : data.product;
+  
+  // Create a valid Product object with all required properties
+  const product: Product = {
+    ...productData,
+    image_urls: productData.image_urls || productData.images || []
+  };
+
   return {
     id: data.id,
     product_id: data.product_id,
     quantity: data.quantity,
-    product: Array.isArray(data.product) ? data.product[0] : data.product
+    product
   };
 }

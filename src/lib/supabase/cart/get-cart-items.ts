@@ -1,6 +1,7 @@
 
 import { supabase } from '../client';
 import { CartItem } from './types';
+import { Product } from '../types';
 import { isUUID, ensureCartTable } from './cart-utils';
 
 /**
@@ -28,6 +29,7 @@ export const getCartItems = async (userId: string): Promise<CartItem[]> => {
           subcategory_id,
           stock,
           images,
+          image_urls,
           created_at,
           updated_at
         )
@@ -40,12 +42,22 @@ export const getCartItems = async (userId: string): Promise<CartItem[]> => {
     // Filter out items with invalid product_id or missing product
     return data
       .filter(item => isUUID(item.product_id) && item.product && (!Array.isArray(item.product) || item.product[0]))
-      .map(item => ({
-        id: item.id,
-        product_id: item.product_id,
-        quantity: item.quantity,
-        product: Array.isArray(item.product) ? item.product[0] : item.product
-      }));
+      .map(item => {
+        const productData = Array.isArray(item.product) ? item.product[0] : item.product;
+        
+        // Create a valid Product object with all required properties
+        const product: Product = {
+          ...productData,
+          image_urls: productData.image_urls || productData.images || []
+        };
+
+        return {
+          id: item.id,
+          product_id: item.product_id,
+          quantity: item.quantity,
+          product
+        };
+      });
   } catch (error) {
     console.error('Error fetching cart items:', error);
     return [];

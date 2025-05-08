@@ -6,7 +6,10 @@ import { Filter, Search, Loader2, ArrowLeft } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import SearchContainer from '@/components/search/SearchContainer';
 import { EnhancedFilterSystem } from '@/components/filters';
-import { FilterOptions } from '@/components/filters/types';
+import { FilterOptions } from '@/lib/supabase/types';
+import { getProducts } from '@/lib/supabase/product-operations';
+import { getCategories } from '@/lib/supabase/category-operations/index';
+import { getSubcategories } from '@/lib/supabase/subcategory-operations/index';
 
 const EnhancedSearch = () => {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
@@ -40,14 +43,18 @@ const EnhancedSearch = () => {
           return;
         }
 
-        // Fetch categories and subcategories in parallel
-        const [categories, subcategoriesArrays] = await Promise.all([
+        // Fetch products, categories and subcategories in parallel
+        const [products, categories, subcategoriesArrays] = await Promise.all([
           getProducts(),
+          getCategories(),
           Promise.all((await getCategories()).map(cat => getSubcategories(cat.id)))
         ]);
 
         // Show UI early with loading indicators
         setInitialProductsLoaded(true);
+        
+        // Set initial products
+        setAllProducts(products);
 
         // Fetch products for all subcategories in parallel
         const flattenedSubcategories = subcategoriesArrays.flat();
@@ -64,7 +71,7 @@ const EnhancedSearch = () => {
         // Deduplicate products
         const uniqueProducts = Array.from(
           new Map(
-            productsArrays.flat().map(product => [product.id, product])
+            [...products, ...productsArrays.flat()].map(product => [product.id, product])
           ).values()
         );
 
