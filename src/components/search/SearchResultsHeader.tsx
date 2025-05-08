@@ -2,7 +2,6 @@
 import React from 'react';
 import { LayoutGrid, List, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { motion } from 'framer-motion';
 
 interface SearchResultsHeaderProps {
   filteredProductsCount: number;
