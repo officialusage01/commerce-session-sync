@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import CategoryFilter from '@/components/filters/CategoryFilter';
@@ -6,12 +7,52 @@ import StockFilter from '@/components/filters/StockFilter';
 import SearchInput from '@/components/filters/SearchInput';
 import FilterHeader from '@/components/filters/FilterHeader';
 import { Separator } from '@/components/ui/separator';
-import { FilterX } from 'lucide-react';
+import { FilterX, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { FilterOptions } from '@/components/filters/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { motion, AnimatePresence } from 'framer-motion';
+
+interface FilterSectionProps {
+  title: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}
+
+const FilterSection: React.FC<FilterSectionProps> = ({ 
+  title, 
+  children, 
+  defaultOpen = false 
+}) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <div className="border-b border-border last:border-0 py-2">
+      <button 
+        className="w-full flex justify-between items-center py-3 px-1 hover:text-primary transition-colors"
+        onClick={() => setIsOpen(prev => !prev)}
+      >
+        <span className="font-medium">{title}</span>
+        {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+      </button>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0, marginBottom: 0 }}
+            animate={{ height: 'auto', opacity: 1, marginBottom: 12 }}
+            exit={{ height: 0, opacity: 0, marginBottom: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            {children}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
 
 export interface ProductFilterProps {
   minPrice?: number;
@@ -103,55 +144,68 @@ const ProductFilter: React.FC<ProductFilterProps> = ({
   };
 
   return (
-    <Card className={`rounded-xl shadow-sm bg-white p-4 ${className}`}>
+    <Card className={`rounded-xl shadow-sm bg-white ${className}`}>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        {!compact && (
-          <FilterHeader 
-            isOpen={isOpen}
-            hasActiveFilters={activeFilters > 0}
-            activeFilterCount={activeFilters}
-            onReset={handleReset}
-          />
-        )}
+        <FilterHeader 
+          isOpen={isOpen}
+          hasActiveFilters={activeFilters > 0}
+          activeFilterCount={activeFilters}
+          onReset={handleReset}
+        />
         
-        <CollapsibleContent className={`mt-4 space-y-4 ${compact ? '' : 'px-4 pb-4'}`}>
-          <ScrollArea className={compact ? "max-h-[60vh]" : "max-h-[calc(100vh-200px)]"}>
-            <div className="space-y-6">
-              <SearchInput value={search} onChange={handleSearchChange} placeholder="Search products..." />
-              
-              <PriceRangeSlider 
-                value={priceRange}
-                min={minPrice}
-                max={maxPrice}
-                onChange={handlePriceRangeChange}
-              />
-              
-              <StockFilter 
-                value={stockStatus} 
-                onChange={handleStockChange} 
-              />
-              
-              <CategoryFilter 
-                selectedCategories={selectedCategories}
-                selectedSubcategories={selectedSubcategories}
-                onCategoryChange={handleCategoryChange}
-                onSubcategoryChange={handleSubcategoryChange}
-              />
-            </div>
-          </ScrollArea>
+        <CollapsibleContent className="transition-all duration-300 ease-in-out">
+          <CardContent className="p-4 pt-2">
+            <ScrollArea className={compact ? "max-h-[60vh]" : "max-h-[calc(100vh-200px)]"}>
+              <div className="space-y-1">
+                <FilterSection title="Search" defaultOpen={true}>
+                  <SearchInput value={search} onChange={handleSearchChange} placeholder="Search products..." />
+                </FilterSection>
+                
+                <FilterSection title="Price Range" defaultOpen={true}>
+                  <PriceRangeSlider 
+                    value={priceRange}
+                    min={minPrice}
+                    max={maxPrice}
+                    onChange={handlePriceRangeChange}
+                  />
+                </FilterSection>
+                
+                <FilterSection title="Availability">
+                  <StockFilter 
+                    value={stockStatus} 
+                    onChange={handleStockChange} 
+                  />
+                </FilterSection>
+                
+                <FilterSection title="Categories">
+                  <CategoryFilter 
+                    selectedCategories={selectedCategories}
+                    selectedSubcategories={selectedSubcategories}
+                    onCategoryChange={handleCategoryChange}
+                    onSubcategoryChange={handleSubcategoryChange}
+                  />
+                </FilterSection>
+              </div>
+            </ScrollArea>
 
-          {!compact && activeFilters > 0 && (
-            <div className="mt-4 flex justify-end">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleReset}
-                className="text-xs flex items-center gap-1.5 text-gray-600 hover:text-gray-900"
+            {activeFilters > 0 && (
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+                className="mt-4 pt-4 border-t flex justify-end"
               >
-                <FilterX className="h-4 w-4" /> Clear Filters
-              </Button>
-            </div>
-          )}
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleReset}
+                  className="text-xs flex items-center gap-1.5 text-gray-600 hover:text-gray-900"
+                >
+                  <FilterX className="h-4 w-4" /> Clear Filters
+                </Button>
+              </motion.div>
+            )}
+          </CardContent>
         </CollapsibleContent>
       </Collapsible>
     </Card>

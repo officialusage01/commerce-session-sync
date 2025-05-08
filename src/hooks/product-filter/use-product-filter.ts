@@ -1,47 +1,34 @@
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Product } from '@/lib/supabase/types';
-import { ProductFilters } from '@/components/filters/types';
+import { FilterOptions } from '@/components/filters/types';
 import { useSessionStorage } from '@/hooks/use-session-storage';
-import { usePriceRange } from './use-price-range';
-import { useFilterCount } from './use-filter-count';
-import { useFilterProducts } from './use-filter-products';
-import { usePagination } from './use-pagination';
-
-interface ProductFilterResult {
-  filters: ProductFilters & { filterCount: number };
-  setFilters: React.Dispatch<React.SetStateAction<ProductFilters>>;
-  updatePriceRange: (range: [number, number]) => void;
-  filteredProducts: Product[];
-  paginatedProducts: Product[];
-  maxPrice: number;
-  minPrice: number;
-  priceRange: [number, number];
-  filterCount: number;
-  resetFilters: () => void;
-  loading: boolean;
-  pagination: {
-    currentPage: number;
-    totalPages: number;
-    pageSize: number;
-    setCurrentPage: (page: number) => void;
-    setPageSize: (size: number) => void;
-  };
-}
+import { useDebounce } from '@/hooks/use-debounce';
 
 /**
- * Main product filter hook that composes other specialized hooks
+ * Main product filter hook that composes filter functionality
  */
 export function useProductFilter(
   products: Product[], 
-  initialFilters?: Partial<ProductFilters>,
+  initialFilters?: Partial<FilterOptions>,
   debounceMs: number = 100
-): ProductFilterResult {
+) {
   // Calculate price range
-  const { maxPrice, minPrice, defaultPriceRange } = usePriceRange(products);
+  const maxPrice = useMemo(() => {
+    return Math.max(...products.map(product => product.price), 10000);
+  }, [products]);
+  
+  const minPrice = useMemo(() => {
+    return Math.min(...products.map(product => product.price), 0);
+  }, [products]);
+  
+  const defaultPriceRange: [number, number] = [
+    Math.floor(minPrice), 
+    Math.ceil(maxPrice)
+  ];
   
   // Use session storage to persist filter state
-  const [storedFilters, setStoredFilters] = useSessionStorage<ProductFilters>('product-filters', {
+  const [storedFilters, setStoredFilters] = useSessionStorage<FilterOptions>('product-filters', {
     search: initialFilters?.search || '',
     priceRange: initialFilters?.priceRange || defaultPriceRange,
     stockStatus: initialFilters?.stockStatus || 'all',
@@ -50,10 +37,22 @@ export function useProductFilter(
   });
 
   // Initialize with stored filters or provided initial filters
-  const [filters, setFiltersState] = useState<ProductFilters>(storedFilters);
+  const [filters, setFiltersState] = useState<FilterOptions>(storedFilters);
+  const [loading, setLoading] = useState(false);
+  
+  // Calculate filter count
+  const filterCount = useMemo(() => {
+    let count = 0;
+    if (filters.search) count++;
+    if (filters.stockStatus !== 'all') count++;
+    if (filters.categories.length > 0) count++;
+    if (filters.subcategories.length > 0) count++;
+    if (filters.priceRange[0] > minPrice || filters.priceRange[1] < maxPrice) count++;
+    return count;
+  }, [filters, minPrice, maxPrice]);
   
   // Update stored filters when filters change
-  const setFilters = useCallback((newFilters: React.SetStateAction<ProductFilters>) => {
+  const setFilters = useCallback((newFilters: React.SetStateAction<FilterOptions>) => {
     setFiltersState(prev => {
       const updatedFilters = typeof newFilters === 'function' ? newFilters(prev) : newFilters;
       setStoredFilters(updatedFilters);
@@ -64,32 +63,62 @@ export function useProductFilter(
   // Update price range if products change
   useEffect(() => {
     if (products.length > 0 && 
+        !initialFilters?.priceRange && 
         (filters.priceRange[0] !== minPrice || filters.priceRange[1] !== maxPrice)) {
-      if (!initialFilters?.priceRange) {
-        setFilters(prev => ({
-          ...prev,
-          priceRange: defaultPriceRange
-        }));
-      }
+      setFilters(prev => ({
+        ...prev,
+        priceRange: defaultPriceRange
+      }));
     }
-  }, [products, minPrice, maxPrice, defaultPriceRange, initialFilters?.priceRange, setFilters]);
+  }, [products, minPrice, maxPrice, defaultPriceRange, initialFilters, setFilters]);
+  
+  // Debounce filters to avoid excessive re-renders
+  const debouncedFilters = useDebounce(filters, debounceMs);
   
   // Filter products
-  const { filteredProducts, loading } = useFilterProducts(products, filters, debounceMs);
-  
-  // Calculate filter count
-  const filterCount = useFilterCount(filters, minPrice, maxPrice);
-  
-  // Apply pagination
-  const { paginatedProducts, pagination } = usePagination(filteredProducts);
-  
-  // Convenient method to update just the price range
-  const updatePriceRange = useCallback((range: [number, number]) => {
-    setFilters(prev => ({
-      ...prev,
-      priceRange: range
-    }));
-  }, [setFilters]);
+  const filteredProducts = useMemo(() => {
+    if (products.length > 0) {
+      setLoading(true);
+    }
+    
+    const filtered = products.filter(product => {
+      // Filter by search term
+      const matchesSearch = !debouncedFilters.search || 
+        product.name.toLowerCase().includes(debouncedFilters.search.toLowerCase()) ||
+        (product.description && product.description.toLowerCase().includes(debouncedFilters.search.toLowerCase()));
+
+      // Filter by price range
+      const matchesPrice = product.price >= debouncedFilters.priceRange[0] && 
+                          product.price <= debouncedFilters.priceRange[1];
+
+      // Filter by stock status
+      let matchesStock = true;
+      if (debouncedFilters.stockStatus === 'in-stock') {
+        matchesStock = product.stock > 0;
+      } else if (debouncedFilters.stockStatus === 'out-of-stock') {
+        matchesStock = product.stock <= 0;
+      }
+
+      // Filter by categories and subcategories
+      let matchesCategory = true;
+      if (debouncedFilters.subcategories.length > 0) {
+        matchesCategory = debouncedFilters.subcategories.includes(product.subcategory_id);
+      } else if (debouncedFilters.categories.length > 0) {
+        // This would require additional logic to check product's category through subcategory relation
+        // Will need to enhance this based on how product data is structured
+        matchesCategory = true; // Simplified for now
+      }
+
+      return matchesSearch && matchesPrice && matchesStock && matchesCategory;
+    });
+    
+    // Small delay to ensure UI updates are visible
+    setTimeout(() => {
+      setLoading(false);
+    }, 150);
+    
+    return filtered;
+  }, [products, debouncedFilters]);
 
   // Reset all filters to default values
   const resetFilters = useCallback(() => {
@@ -100,8 +129,7 @@ export function useProductFilter(
       categories: [],
       subcategories: [],
     });
-    pagination.setCurrentPage(1);
-  }, [defaultPriceRange, setFilters, pagination]);
+  }, [defaultPriceRange, setFilters]);
 
   // Return combined filters with count
   const filtersWithCount = useMemo(() => ({
@@ -112,15 +140,10 @@ export function useProductFilter(
   return {
     filters: filtersWithCount,
     setFilters,
-    updatePriceRange,
     filteredProducts,
-    paginatedProducts,
     maxPrice,
     minPrice,
-    priceRange: filters.priceRange,
-    filterCount,
     resetFilters,
-    loading,
-    pagination
+    loading
   };
 }

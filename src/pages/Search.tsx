@@ -11,6 +11,7 @@ const Search = () => {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [initialProductsLoaded, setInitialProductsLoaded] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [sidebarFilters, setSidebarFilters] = useState({
     search: '',
     priceRange: [0, 1000] as [number, number],
@@ -118,6 +119,8 @@ const Search = () => {
               initialProductsLoaded={initialProductsLoaded}
               useSidebarFilter={!isMobile} // Tell the container if sidebar filter is visible
               sidebarFilters={sidebarFilters} // Pass the sidebar filters to the search container
+              showMobileFilters={showMobileFilters}
+              setShowMobileFilters={setShowMobileFilters}
             />
           </div>
         </div>

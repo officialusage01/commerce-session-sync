@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Product } from '@/lib/supabase/types';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -8,11 +7,10 @@ import SearchBar from './SearchBar';
 import ProductGrid from './ProductGrid';
 import SearchResultsHeader from './SearchResultsHeader';
 import LoadMoreIndicator from './LoadMoreIndicator';
-import SearchFilter from './SearchFilter';
-import { useQuery } from '@tanstack/react-query';
-import { getProducts } from '@/lib/supabase/product-operations';
 import ProductFilter from '@/components/ProductFilter';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
+import { useQuery } from '@tanstack/react-query';
+import { getProducts } from '@/lib/supabase/product-operations';
 
 interface SearchContainerProps {
   allProducts: Product[];
@@ -26,6 +24,8 @@ interface SearchContainerProps {
     categories: string[];
     subcategories: string[];
   }; // Filters from the sidebar
+  showMobileFilters?: boolean;
+  setShowMobileFilters?: (show: boolean) => void;
 }
 
 const SearchContainer: React.FC<SearchContainerProps> = ({
@@ -39,7 +39,9 @@ const SearchContainer: React.FC<SearchContainerProps> = ({
     stockStatus: 'all',
     categories: [],
     subcategories: []
-  }
+  },
+  showMobileFilters = false,
+  setShowMobileFilters = () => {}
 }) => {
   const isMobile = useIsMobile();
   
@@ -68,8 +70,6 @@ const SearchContainer: React.FC<SearchContainerProps> = ({
     maxPrice,
     viewMode,
     setViewMode,
-    showFilterDialog,
-    setShowFilterDialog,
     loadingMore,
     hasMoreProducts,
     loadMoreRef,
@@ -107,16 +107,21 @@ const SearchContainer: React.FC<SearchContainerProps> = ({
           clearSearch={clearSearch}
         />
         
-        {/* Only show SearchFilter button if not using the sidebar filter */}
-        {!useSidebarFilter && (
-          <SearchFilter
-            maxPrice={maxPrice}
-            filters={filters}
-            showFilterDialog={showFilterDialog}
-            setShowFilterDialog={setShowFilterDialog}
-            onFilterChange={handleFilterChange}
-            onClearFilters={handleClearFilters}
-          />
+        {/* Only show filter toggle button on mobile */}
+        {isMobile && (
+          <Button
+            variant="outline"
+            className="h-12 bg-white/80 backdrop-blur-sm shadow-sm flex items-center gap-2 shrink-0 transition-all hover:bg-white"
+            onClick={() => setShowMobileFilters(!showMobileFilters)}
+          >
+            <Filter className="h-4 w-4" />
+            <span>Filters</span>
+            {filters.filterCount > 0 && (
+              <div className="ml-1 h-5 min-w-5 rounded-full text-xs flex items-center justify-center px-1.5 bg-primary text-white">
+                {filters.filterCount}
+              </div>
+            )}
+          </Button>
         )}
       </div>
 
@@ -127,22 +132,6 @@ const SearchContainer: React.FC<SearchContainerProps> = ({
           setViewMode={setViewMode}
           loading={filterLoading}
         />
-        
-        {/* Only show embedded filter if not using sidebar filter */}
-        {!useSidebarFilter && (
-          <Collapsible open={!isMobile && showFilterDialog} className="mb-4">
-            <CollapsibleContent>
-              <div className="rounded-lg border shadow-sm p-4 bg-background mb-4">
-                <ProductFilter
-                  maxPrice={maxPrice}
-                  onFilterChange={handleFilterChange}
-                  initialFilters={filters}
-                  onClearFilters={handleClearFilters}
-                />
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-        )}
         
         <ProductGrid
           loading={loading}
@@ -168,8 +157,8 @@ const SearchContainer: React.FC<SearchContainerProps> = ({
           onFilterChange={handleFilterChange}
           onClearFilters={handleClearFilters}
           initialFilters={filters}
-          open={showFilterDialog}
-          onOpenChange={setShowFilterDialog}
+          open={showMobileFilters}
+          onOpenChange={setShowMobileFilters}
           filterCount={filters.filterCount || 0}
         />
       )}
