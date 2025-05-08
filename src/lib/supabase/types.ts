@@ -45,7 +45,9 @@ export interface ProductWithRelations extends Product {
 export interface CloudinaryImage {
   public_id: string;
   secure_url: string;
+  url?: string; // Added url field used in various components
   original_filename: string;
+  product_id?: string | number; // Added for compatibility with existing code
 }
 
 // Add FilterOptions type that's referenced in components

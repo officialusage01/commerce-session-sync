@@ -3,5 +3,6 @@
 export * from './supabase';
 export * from './types';
 export * from './product-operations';
-export * from './category-operations';
+export * from './category-operations/index';
+export * from './subcategory-operations/index';
 export * from './auth-operations';

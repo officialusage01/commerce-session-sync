@@ -8,10 +8,10 @@ import { defaultCategories, defaultSubcategories } from './default-data';
 export { createSQLFunctions, setupDatabase, initializeDatabase } from './db-setup';
 
 // Re-export from category-operations module
-export { getCategories, createCategory, updateCategory, deleteCategory } from './category-operations';
+export { getCategories } from './category-operations/index';
 
 // Re-export from subcategory-operations module
-export { getSubcategories, createSubcategory, updateSubcategory } from './subcategory-operations';
+export { getSubcategories } from './subcategory-operations/index';
 
 // Re-export from product-operations module
 export { 
