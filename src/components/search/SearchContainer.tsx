@@ -19,14 +19,14 @@ interface SearchContainerProps {
   allProducts: Product[];
   loading: boolean;
   initialProductsLoaded: boolean;
-  useSidebarFilter?: boolean; // Whether the left sidebar filter is being used
+  useSidebarFilter?: boolean;
   sidebarFilters?: {
     search: string;
     priceRange: [number, number];
     stockStatus: 'all' | 'in-stock' | 'out-of-stock';
     categories: string[];
     subcategories: string[];
-  }; // Filters from the sidebar
+  };
   showMobileFilters?: boolean;
   setShowMobileFilters?: (show: boolean) => void;
 }
@@ -87,18 +87,25 @@ const SearchContainer: React.FC<SearchContainerProps> = ({
   // Apply sidebar filters when they change (only if sidebar is being used)
   useEffect(() => {
     if (useSidebarFilter) {
+      // Create a filter count based on active filters
+      const filterCount = 
+        (sidebarFilters.search ? 1 : 0) +
+        (sidebarFilters.stockStatus !== 'all' ? 1 : 0) +
+        sidebarFilters.categories.length +
+        sidebarFilters.subcategories.length +
+        (sidebarFilters.priceRange[0] > 0 || sidebarFilters.priceRange[1] < maxPrice ? 1 : 0);
+      
+      // Use object literal instead of spreading to avoid dependency issues
       setFilters({
-        ...sidebarFilters,
-        // Keep track of filter count for UI indicators
-        filterCount: 
-          (sidebarFilters.search ? 1 : 0) +
-          (sidebarFilters.stockStatus !== 'all' ? 1 : 0) +
-          sidebarFilters.categories.length +
-          sidebarFilters.subcategories.length +
-          (sidebarFilters.priceRange[0] > 0 || sidebarFilters.priceRange[1] < maxPrice ? 1 : 0)
+        search: sidebarFilters.search,
+        priceRange: sidebarFilters.priceRange,
+        stockStatus: sidebarFilters.stockStatus,
+        categories: sidebarFilters.categories,
+        subcategories: sidebarFilters.subcategories,
+        filterCount
       });
     }
-  }, [useSidebarFilter, sidebarFilters, setFilters, maxPrice]);
+  }, [useSidebarFilter, sidebarFilters, maxPrice, setFilters]);
 
   return (
     <div className="flex flex-col gap-4">

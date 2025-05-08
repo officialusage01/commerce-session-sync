@@ -22,10 +22,10 @@ export function useProductFilter(
     return Math.min(...products.map(product => product.price), 0);
   }, [products]);
   
-  const defaultPriceRange: [number, number] = [
+  const defaultPriceRange: [number, number] = useMemo(() => [
     Math.floor(minPrice), 
     Math.ceil(maxPrice)
-  ];
+  ], [minPrice, maxPrice]);
   
   // Use session storage to persist filter state
   const [storedFilters, setStoredFilters] = useSessionStorage<FilterOptions>('product-filters', {
@@ -51,12 +51,26 @@ export function useProductFilter(
     return count;
   }, [filters, minPrice, maxPrice]);
   
-  // Update stored filters when filters change
+  // Update stored filters when filters change - with memoized comparison
   const setFilters = useCallback((newFilters: React.SetStateAction<FilterOptions>) => {
     setFiltersState(prev => {
       const updatedFilters = typeof newFilters === 'function' ? newFilters(prev) : newFilters;
-      setStoredFilters(updatedFilters);
-      return updatedFilters;
+      
+      // Only update if the filters have actually changed
+      const hasChanged = 
+        prev.search !== updatedFilters.search ||
+        prev.stockStatus !== updatedFilters.stockStatus ||
+        prev.priceRange[0] !== updatedFilters.priceRange[0] ||
+        prev.priceRange[1] !== updatedFilters.priceRange[1] ||
+        prev.categories.length !== updatedFilters.categories.length ||
+        prev.subcategories.length !== updatedFilters.subcategories.length;
+      
+      if (hasChanged) {
+        setStoredFilters(updatedFilters);
+        return updatedFilters;
+      }
+      
+      return prev;
     });
   }, [setStoredFilters]);
   
@@ -70,7 +84,7 @@ export function useProductFilter(
         priceRange: defaultPriceRange
       }));
     }
-  }, [products, minPrice, maxPrice, defaultPriceRange, initialFilters, setFilters]);
+  }, [products.length, minPrice, maxPrice, defaultPriceRange, initialFilters, setFilters, filters.priceRange]);
   
   // Debounce filters to avoid excessive re-renders
   const debouncedFilters = useDebounce(filters, debounceMs);

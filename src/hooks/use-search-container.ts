@@ -34,12 +34,15 @@ export function useSearchContainer(products: Product[], initialProductsLoaded: b
     setVisibleCount(12);
   }, [filters]);
   
-  // Update search filter when search term changes
+  // Update search filter when search term changes - with proper dependency handling
   useEffect(() => {
-    setFilters(prev => ({
-      ...prev,
-      search: debouncedSearchTerm
-    }));
+    // Only update if the search term has actually changed
+    if (filters.search !== debouncedSearchTerm) {
+      setFilters(prev => ({
+        ...prev,
+        search: debouncedSearchTerm
+      }));
+    }
   }, [debouncedSearchTerm, setFilters]);
   
   // Load more products when the user scrolls to the bottom
