@@ -1,0 +1,20 @@
+
+/* Desktop header display rules */
+@media (min-width: 768px) {
+  .desktop-only-text {
+    display: inline;
+  }
+  .desktop-tab-icon {
+    display: none;
+  }
+}
+
+/* Mobile header display rules */
+@media (max-width: 767px) {
+  .desktop-only-text {
+    display: none;
+  }
+  .desktop-tab-icon {
+    display: inline;
+  }
+}

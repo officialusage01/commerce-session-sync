@@ -18,9 +18,11 @@ export {
   getProducts, 
   getFeaturedProducts, 
   getProduct, 
+  getProductById,
   createProduct, 
   updateProduct, 
-  deleteProduct 
+  deleteProduct,
+  type ProductWithRelations
 } from './product-operations';
 
 // Re-export from orders module

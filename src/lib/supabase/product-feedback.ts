@@ -1,3 +1,4 @@
+
 import { supabase } from './client';
 
 export interface ProductFeedback {
@@ -8,6 +9,7 @@ export interface ProductFeedback {
   feedback_tags: string[];
   message?: string;
   created_at: string;
+  // We won't include user information directly in this interface
 }
 
 export interface ProductRatingStats {
@@ -50,6 +52,7 @@ export const submitProductFeedback = async (feedback: Omit<ProductFeedback, 'id'
 
 export const getProductFeedback = async (productId: string): Promise<ProductFeedback[]> => {
   try {
+    // Remove the joined user field to avoid foreign key issues
     const { data, error } = await supabase
       .from('product_feedbacks')
       .select('*')
@@ -66,10 +69,10 @@ export const getProductFeedback = async (productId: string): Promise<ProductFeed
 
 export const getProductRatingStats = async (productId: string | number): Promise<ProductRatingStats> => {
   try {
-    // Convert productId to number if it's a string
-    const productIdNum = typeof productId === 'string' ? parseInt(productId, 10) : productId;
+    // Convert productId to string if it's a number
+    const productIdStr = typeof productId === 'number' ? String(productId) : productId;
     
-    if (isNaN(productIdNum)) {
+    if (!productIdStr) {
       console.error('Invalid product ID:', productId);
       return {
         average_rating: 0,
@@ -78,21 +81,19 @@ export const getProductRatingStats = async (productId: string | number): Promise
       };
     }
 
+    // Use direct SQL query instead of RPC to avoid the function overload issue
     const { data, error } = await supabase
-      .rpc('get_product_rating_stats_by_id', { 
-        product_id_param: productIdNum 
-      })
-      .single();
+      .from('product_feedbacks')
+      .select('rating')
+      .eq('product_id', productIdStr);
 
     if (error) {
       console.error('Error in getProductRatingStats:', error);
       throw error;
     }
     
-    console.log('Raw stats data:', data); // Debug log
-    
-    if (!data) {
-      console.log('No stats data returned, using defaults'); // Debug log
+    // Calculate stats manually
+    if (!data || data.length === 0) {
       return {
         average_rating: 0,
         total_reviews: 0,
@@ -100,23 +101,25 @@ export const getProductRatingStats = async (productId: string | number): Promise
       };
     }
     
-    // Type assertion for the database response
-    const rawStats = data as {
-      average_rating: number | null;
-      total_reviews: number | null;
-      rating_distribution: number[] | null;
-    };
+    // Calculate average rating
+    const sum = data.reduce((acc, item) => acc + item.rating, 0);
+    const average = sum / data.length;
     
-    // Ensure the data is properly formatted
+    // Calculate rating distribution
+    const distribution = [0, 0, 0, 0, 0];
+    data.forEach(item => {
+      if (item.rating >= 1 && item.rating <= 5) {
+        distribution[item.rating - 1]++;
+      }
+    });
+    
     const stats: ProductRatingStats = {
-      average_rating: Number(rawStats.average_rating) || 0,
-      total_reviews: Number(rawStats.total_reviews) || 0,
-      rating_distribution: Array.isArray(rawStats.rating_distribution)
-        ? rawStats.rating_distribution.map(count => Number(count) || 0)
-        : [0, 0, 0, 0, 0]
+      average_rating: Number(average.toFixed(1)),
+      total_reviews: data.length,
+      rating_distribution: distribution
     };
     
-    console.log('Formatted stats:', stats); // Debug log
+    console.log('Calculated stats:', stats); // Debug log
     return stats;
   } catch (error) {
     console.error('Error fetching product rating stats:', error);

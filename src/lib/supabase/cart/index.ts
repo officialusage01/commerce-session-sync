@@ -4,6 +4,8 @@ export type { CartItem, CartItemDB } from './types';
 
 // Export cart utilities
 export { isUUID, ensureCartTable, cleanInvalidCartItems } from './cart-utils';
+export { validateAddToCartInput } from './validators';
+export { checkExistingCartItem, updateExistingCartItem, addNewCartItem } from './cart-item-operations';
 
 // Export cart operations
 export { getCartItems } from './get-cart-items';

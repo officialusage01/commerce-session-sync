@@ -1,159 +1,101 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
-import { Product } from '@/lib/supabase';
-import { Button } from '@/components/ui/button';
-import { Filter } from 'lucide-react';
+
+import React, { useEffect } from 'react';
+import { Product } from '@/lib/supabase/types';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useProductFilter } from '@/hooks/use-product-filter';
-import { useUrlParams } from '@/hooks/use-url-params';
-import { useToast } from '@/hooks/use-toast';
-import { useInView } from 'react-intersection-observer';
+import { useSearchContainer } from '@/hooks/use-search-container';
 import FilterDialog from '@/components/mobile/FilterDialog';
 import SearchBar from './SearchBar';
 import ProductGrid from './ProductGrid';
 import SearchResultsHeader from './SearchResultsHeader';
 import LoadMoreIndicator from './LoadMoreIndicator';
-import { FilterOptions } from '@/components/filters/types';
+import SearchFilter from './SearchFilter';
+import { useQuery } from '@tanstack/react-query';
+import { getProducts } from '@/lib/supabase/product-operations';
+import ProductFilter from '@/components/ProductFilter';
+import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 
 interface SearchContainerProps {
   allProducts: Product[];
   loading: boolean;
   initialProductsLoaded: boolean;
+  useSidebarFilter?: boolean; // Whether the left sidebar filter is being used
+  sidebarFilters?: {
+    search: string;
+    priceRange: [number, number];
+    stockStatus: 'all' | 'in-stock' | 'out-of-stock';
+    categories: string[];
+    subcategories: string[];
+  }; // Filters from the sidebar
 }
 
 const SearchContainer: React.FC<SearchContainerProps> = ({
-  allProducts,
-  loading,
-  initialProductsLoaded
+  allProducts: initialProducts,
+  loading: initialLoading,
+  initialProductsLoaded,
+  useSidebarFilter = false,
+  sidebarFilters = {
+    search: '',
+    priceRange: [0, 10000],
+    stockStatus: 'all',
+    categories: [],
+    subcategories: []
+  }
 }) => {
-  const { getFiltersFromUrl, setFiltersToUrl } = useUrlParams();
-  const location = useLocation();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
-  const [showFilterDialog, setShowFilterDialog] = useState(false);
   const isMobile = useIsMobile();
-  const { toast } = useToast();
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   
-  // For infinite scroll implementation
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMoreProducts, setHasMoreProducts] = useState(true);
-  const { ref: loadMoreRef, inView } = useInView({
-    threshold: 0.5,
-    triggerOnce: false,
+  // Use React Query to get fresh products data
+  const { data: freshProducts, isLoading } = useQuery({
+    queryKey: ['allProducts'],
+    queryFn: async () => {
+      // This will fetch all products across all subcategories
+      return getProducts();
+    },
+    initialData: initialProducts,
+    refetchInterval: 30000, // Refetch every 30 seconds
+    enabled: initialProductsLoaded // Only enable once initial products are loaded
   });
   
-  // Initialize with URL params if available
-  const initialFilters = getFiltersFromUrl();
-
-  // Set search term from URL params on initial load
-  useEffect(() => {
-    if (initialFilters.search) {
-      setSearchTerm(initialFilters.search);
-    }
-    
-    // Load view mode from localStorage if available
-    const savedViewMode = localStorage.getItem('product-view-mode');
-    if (savedViewMode === 'grid' || savedViewMode === 'list') {
-      setViewMode(savedViewMode as 'grid' | 'list');
-    }
-  }, [initialFilters.search]);
-
-  // Save view mode preference
-  useEffect(() => {
-    localStorage.setItem('product-view-mode', viewMode);
-  }, [viewMode]);
-
-  // Use our custom filtering hook with optimized performance
-  const { 
-    filters, 
-    setFilters, 
-    filteredProducts, 
+  // Use the freshest data available
+  const allProducts = freshProducts || initialProducts;
+  const loading = isLoading || initialLoading;
+  
+  const {
+    searchTerm,
+    setSearchTerm,
+    filters,
+    filteredProducts,
+    visibleProducts,
     maxPrice,
-    resetFilters,
-  } = useProductFilter(
-    allProducts,
-    initialFilters
-  );
-
-  // Override the pagination to support infinite scroll
-  const [visibleProducts, setVisibleProducts] = useState<Product[]>([]);
-  const [currentBatch, setCurrentBatch] = useState(1);
-  const batchSize = 10;
-
-  // Reset visible products when filters change
+    viewMode,
+    setViewMode,
+    showFilterDialog,
+    setShowFilterDialog,
+    loadingMore,
+    hasMoreProducts,
+    loadMoreRef,
+    handleFilterChange,
+    handleClearFilters,
+    handleSearch,
+    clearSearch,
+    filterLoading,
+    setFilters
+  } = useSearchContainer(allProducts, initialProductsLoaded);
+  
+  // Apply sidebar filters when they change (only if sidebar is being used)
   useEffect(() => {
-    const initialProducts = filteredProducts.slice(0, batchSize);
-    setVisibleProducts(initialProducts);
-    setCurrentBatch(1);
-    setHasMoreProducts(filteredProducts.length > batchSize);
-  }, [filteredProducts]);
-
-  // Load more products when scrolling to the bottom
-  useEffect(() => {
-    if (inView && hasMoreProducts && !loadingMore) {
-      loadMoreProducts();
+    if (useSidebarFilter) {
+      setFilters({
+        ...sidebarFilters,
+        // Keep track of filter count for UI indicators
+        filterCount: 
+          (sidebarFilters.search ? 1 : 0) +
+          (sidebarFilters.stockStatus !== 'all' ? 1 : 0) +
+          sidebarFilters.categories.length +
+          sidebarFilters.subcategories.length +
+          (sidebarFilters.priceRange[0] > 0 || sidebarFilters.priceRange[1] < maxPrice ? 1 : 0)
+      });
     }
-  }, [inView, hasMoreProducts, loadingMore]);
-
-  // Function to load more products
-  const loadMoreProducts = () => {
-    if (loadingMore || !hasMoreProducts) return;
-    
-    setLoadingMore(true);
-    
-    // Simulate network request with a small delay
-    setTimeout(() => {
-      const nextBatch = currentBatch + 1;
-      const startIndex = currentBatch * batchSize;
-      const endIndex = nextBatch * batchSize;
-      const nextProducts = filteredProducts.slice(startIndex, endIndex);
-      
-      setVisibleProducts(prev => [...prev, ...nextProducts]);
-      setCurrentBatch(nextBatch);
-      setHasMoreProducts(endIndex < filteredProducts.length);
-      setLoadingMore(false);
-    }, 300);
-  };
-
-  // Update URL when filters change
-  useEffect(() => {
-    const debounceTimer = setTimeout(() => {
-      setFiltersToUrl(filters);
-    }, 300);
-    return () => clearTimeout(debounceTimer);
-  }, [filters, setFiltersToUrl]);
-
-  const handleFilterChange = useCallback((newFilters: FilterOptions) => {
-    setFilters(newFilters);
-  }, [setFilters]);
-
-  const handleClearFilters = useCallback(() => {
-    resetFilters();
-    setShowFilterDialog(false);
-    toast({
-      title: "Filters cleared",
-      description: "All product filters have been reset",
-    });
-  }, [resetFilters, toast]);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchTerm.trim()) {
-      setFilters(prev => ({
-        ...prev,
-        search: searchTerm
-      }));
-    }
-  };
-
-  const clearSearch = () => {
-    setSearchTerm('');
-    setFilters(prev => ({
-      ...prev,
-      search: ''
-    }));
-  };
+  }, [useSidebarFilter, sidebarFilters, setFilters, maxPrice]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -165,30 +107,16 @@ const SearchContainer: React.FC<SearchContainerProps> = ({
           clearSearch={clearSearch}
         />
         
-        {isMobile ? (
-          <FilterDialog 
+        {/* Only show SearchFilter button if not using the sidebar filter */}
+        {!useSidebarFilter && (
+          <SearchFilter
             maxPrice={maxPrice}
+            filters={filters}
+            showFilterDialog={showFilterDialog}
+            setShowFilterDialog={setShowFilterDialog}
             onFilterChange={handleFilterChange}
             onClearFilters={handleClearFilters}
-            initialFilters={filters}
-            open={showFilterDialog}
-            onOpenChange={setShowFilterDialog}
-            filterCount={filters.filterCount || 0}
           />
-        ) : (
-          <Button
-            variant="outline"
-            className="h-12 bg-white/80 backdrop-blur-sm shadow-sm flex items-center gap-2 shrink-0"
-            onClick={() => setShowFilterDialog(true)}
-          >
-            <Filter className="h-4 w-4" />
-            <span>Filters</span>
-            {filters && filters.filterCount > 0 && (
-              <span className="ml-1 h-5 min-w-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center px-1.5">
-                {filters.filterCount}
-              </span>
-            )}
-          </Button>
         )}
       </div>
 
@@ -197,7 +125,24 @@ const SearchContainer: React.FC<SearchContainerProps> = ({
           filteredProductsCount={filteredProducts.length}
           viewMode={viewMode}
           setViewMode={setViewMode}
+          loading={filterLoading}
         />
+        
+        {/* Only show embedded filter if not using sidebar filter */}
+        {!useSidebarFilter && (
+          <Collapsible open={!isMobile && showFilterDialog} className="mb-4">
+            <CollapsibleContent>
+              <div className="rounded-lg border shadow-sm p-4 bg-background mb-4">
+                <ProductFilter
+                  maxPrice={maxPrice}
+                  onFilterChange={handleFilterChange}
+                  initialFilters={filters}
+                  onClearFilters={handleClearFilters}
+                />
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        )}
         
         <ProductGrid
           loading={loading}
@@ -205,7 +150,7 @@ const SearchContainer: React.FC<SearchContainerProps> = ({
           filteredProducts={filteredProducts}
           visibleProducts={visibleProducts}
           viewMode={viewMode}
-          showFilters={showFilters}
+          showFilters={false}
           isMobile={isMobile}
         />
         
@@ -216,7 +161,8 @@ const SearchContainer: React.FC<SearchContainerProps> = ({
         />
       </div>
 
-      {!isMobile && (
+      {/* Mobile filter dialog only shown when needed */}
+      {isMobile && (
         <FilterDialog 
           maxPrice={maxPrice}
           onFilterChange={handleFilterChange}

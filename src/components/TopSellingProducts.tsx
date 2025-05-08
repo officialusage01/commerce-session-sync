@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Product, getProducts } from '@/lib/supabase';
+import { getProducts } from '@/lib/supabase/product-operations';
 import ProductCard from './ProductCard';
 import { Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';

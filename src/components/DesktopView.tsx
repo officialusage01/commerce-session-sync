@@ -1,7 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Product, Subcategory, getProducts, getSubcategories } from '@/lib/supabase';
+import { Product, Subcategory } from '@/lib/supabase/types';
+import { getProducts } from '@/lib/supabase/product-operations';
+import { getSubcategories } from '@/lib/supabase';
 import ProductCard from './ProductCard';
 import { ArrowLeft } from 'lucide-react';
 import ProductFilter from './ProductFilter';

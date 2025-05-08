@@ -2,8 +2,8 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProductDetails from '@/components/product/ProductDetails';
-import ProductReviews from './ProductReviews';
-import { ProductWithRelations } from '@/lib/supabase/product-operations';
+import ProductReviews from '@/components/product-detail/components/ProductReviews';
+import { ProductWithRelations } from '@/lib/supabase/product-operations/types';
 
 interface ProductTabsSectionProps {
   product: ProductWithRelations;

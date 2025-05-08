@@ -1,5 +1,6 @@
 
-import { useCart } from '@/lib/cart'; // Updated import path
+import React, { useState, useRef } from 'react';
+import { useCart } from '@/lib/cart';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart } from 'lucide-react';
 import {
@@ -12,39 +13,76 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 
 export function CartDropdown() {
-  const { items, totalItems, totalPrice, removeFromCart, updateQuantity, checkout } = useCart();
+  const { items, totalItems, totalPrice, removeFromCart, updateQuantity, checkout, isLoading } = useCart();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const [isOpen, setIsOpen] = useState(false);
+  const [processingItems, setProcessingItems] = useState<Record<string, boolean>>({});
+  const processingAction = useRef(false);
 
   const handleCheckout = async () => {
-    // First handle the checkout to update stock in the database
-    await checkout();
-    
-    // Generate the order summary message
-    const message = items.map(item => 
-      `${item.product.name} (${item.quantity} x $${item.product.price})`
-    ).join('\n') + `\n\nTotal: $${totalPrice}`;
-    
-    const encodedMessage = encodeURIComponent(message);
+    if (processingAction.current) return;
+    processingAction.current = true;
     
     try {
-      // Use different URLs for mobile and desktop
-      const whatsappUrl = isMobile
-        ? `https://wa.me/?text=${encodedMessage}`
-        : `https://web.whatsapp.com/send?text=${encodedMessage}`;
+      // First handle the checkout to update stock in the database
+      await checkout();
       
-      // Open in a new window
-      window.open(whatsappUrl, '_blank');
+      // Close dropdown after checkout
+      setIsOpen(false);
       
-      toast('Order processed successfully');
-    } catch (error) {
-      console.error('Error opening WhatsApp:', error);
-      toast('Failed to open WhatsApp. Your order was processed.');
+      // Generate the order summary message
+      const message = items.map(item => 
+        `${item.product.name} (${item.quantity} x $${item.product.price})`
+      ).join('\n') + `\n\nTotal: $${totalPrice}`;
+      
+      const encodedMessage = encodeURIComponent(message);
+      
+      try {
+        // Use different URLs for mobile and desktop
+        const whatsappUrl = isMobile
+          ? `https://wa.me/?text=${encodedMessage}`
+          : `https://web.whatsapp.com/send?text=${encodedMessage}`;
+        
+        // Open in a new window
+        window.open(whatsappUrl, '_blank');
+        
+        toast.success('Order processed successfully');
+      } catch (error) {
+        console.error('Error opening WhatsApp:', error);
+        toast('Failed to open WhatsApp. Your order was processed.');
+      }
+    } finally {
+      processingAction.current = false;
+    }
+  };
+
+  const handleUpdateQuantity = async (itemId: string, quantity: number) => {
+    if (processingItems[itemId]) return;
+    
+    setProcessingItems(prev => ({ ...prev, [itemId]: true }));
+    
+    try {
+      await updateQuantity(itemId, quantity);
+    } finally {
+      setProcessingItems(prev => ({ ...prev, [itemId]: false }));
+    }
+  };
+
+  const handleRemoveItem = async (itemId: string) => {
+    if (processingItems[itemId]) return;
+    
+    setProcessingItems(prev => ({ ...prev, [itemId]: true }));
+    
+    try {
+      await removeFromCart(itemId);
+    } finally {
+      setProcessingItems(prev => ({ ...prev, [itemId]: false }));
     }
   };
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <ShoppingCart className="h-5 w-5" />
@@ -57,7 +95,12 @@ export function CartDropdown() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80 p-4">
         <h3 className="font-semibold mb-4">Your Cart ({totalItems} items)</h3>
-        {items.length === 0 ? (
+        {isLoading ? (
+          <div className="py-4 text-center">
+            <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
+            <p className="text-sm text-muted-foreground">Loading cart...</p>
+          </div>
+        ) : items.length === 0 ? (
           <p className="text-center text-muted-foreground">Your cart is empty</p>
         ) : (
           <div className="space-y-4">
@@ -74,7 +117,8 @@ export function CartDropdown() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                    onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
+                    disabled={processingItems[item.id] || item.quantity <= 1}
                   >
                     -
                   </Button>
@@ -82,15 +126,16 @@ export function CartDropdown() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                    disabled={item.quantity >= item.product.stock}
+                    onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                    disabled={processingItems[item.id] || item.quantity >= item.product.stock}
                   >
                     +
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => removeFromCart(item.id)}
+                    onClick={() => handleRemoveItem(item.id)}
+                    disabled={processingItems[item.id]}
                   >
                     ×
                   </Button>
@@ -100,10 +145,14 @@ export function CartDropdown() {
             <div className="border-t pt-4">
               <div className="flex justify-between font-medium">
                 <span>Total</span>
-                <span>${totalPrice}</span>
+                <span>${totalPrice.toFixed(2)}</span>
               </div>
-              <Button className="w-full mt-4" onClick={handleCheckout}>
-                Checkout
+              <Button 
+                className="w-full mt-4" 
+                onClick={handleCheckout}
+                disabled={isLoading || items.length === 0}
+              >
+                {isLoading ? 'Processing...' : 'Checkout'}
               </Button>
             </div>
           </div>

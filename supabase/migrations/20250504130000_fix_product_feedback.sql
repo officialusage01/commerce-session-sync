@@ -41,26 +41,29 @@ BEGIN
       ON product_feedbacks FOR ALL
       TO authenticated
       USING (auth.role() = 'admin');
-
-    -- Create function to get product rating statistics if it doesn't exist
-    CREATE OR REPLACE FUNCTION get_product_rating_stats(product_id_param UUID)
-    RETURNS TABLE (
-      average_rating NUMERIC,
-      total_reviews INTEGER,
-      rating_distribution INTEGER[]
-    ) 
-    LANGUAGE plpgsql
-    AS $$
-    BEGIN
-      RETURN QUERY
-      SELECT 
-        ROUND(AVG(rating)::numeric, 1) as average_rating,
-        COUNT(*)::integer as total_reviews,
-        ARRAY_AGG(rating ORDER BY rating) as rating_distribution
-      FROM product_feedbacks
-      WHERE product_id = product_id_param;
-    END;
-    $$;
   END IF;
+
+  -- Drop the function if it exists with the wrong name
+  DROP FUNCTION IF EXISTS get_product_rating_stats_by_id;
+
+  -- Create or replace the function with the correct name
+  CREATE OR REPLACE FUNCTION get_product_rating_stats(product_id_param UUID)
+  RETURNS TABLE (
+    average_rating NUMERIC,
+    total_reviews INTEGER,
+    rating_distribution INTEGER[]
+  ) 
+  LANGUAGE plpgsql
+  AS $$
+  BEGIN
+    RETURN QUERY
+    SELECT 
+      ROUND(AVG(rating)::numeric, 1) as average_rating,
+      COUNT(*)::integer as total_reviews,
+      ARRAY_AGG(rating ORDER BY rating) as rating_distribution
+    FROM product_feedbacks
+    WHERE product_id = product_id_param;
+  END;
+  $$;
 END
 $$;

@@ -2,7 +2,7 @@
 import React from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import ProductImageCarousel from '@/components/product/ProductImageCarousel';
-import { ProductWithRelations } from '@/lib/supabase/product-operations';
+import { ProductWithRelations } from '@/lib/supabase/product-operations/types';
 
 interface ProductImageSectionProps {
   product: ProductWithRelations;

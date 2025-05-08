@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import ProductForm from './ProductManager/ProductForm';
 import { saveProduct, validateProduct } from './ProductManager/product-utils';
+import { toast } from "sonner"; // Import toast from sonner for immediate feedback
 
 interface ProductDialogProps {
   isOpen: boolean;
@@ -25,18 +26,15 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
 }) => {
   const [currentProduct, setCurrentProduct] = useState<Partial<Product>>(product);
   const [submitting, setSubmitting] = useState(false);
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
   
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const validation = validateProduct(currentProduct, subcategoryId);
     if (!validation.valid) {
-      toast({
-        title: 'Error',
-        description: validation.message,
-        variant: 'destructive',
-      });
+      // Use sonner toast for immediate feedback
+      toast.error(validation.message);
       return;
     }
     
@@ -48,25 +46,15 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
       const result = await saveProduct(currentProduct, subcategoryId, isEditing);
       
       if (result.success) {
-        toast({
-          title: 'Success',
-          description: result.message,
-        });
+        // Use sonner toast for immediate feedback
+        toast.success(result.message);
         onSaved();
       } else {
-        toast({
-          title: 'Error',
-          description: result.message,
-          variant: 'destructive',
-        });
+        toast.error(result.message);
       }
     } catch (error) {
       console.error('Save product error:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to save product',
-        variant: 'destructive',
-      });
+      toast.error('Failed to save product');
     } finally {
       setSubmitting(false);
     }

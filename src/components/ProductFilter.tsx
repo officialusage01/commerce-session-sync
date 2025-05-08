@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import CategoryFilter from '@/components/filters/CategoryFilter';
@@ -24,8 +23,6 @@ export interface ProductFilterProps {
   onClearFilters?: () => void;
 }
 
-export type ProductFilters = FilterOptions;
-
 const ProductFilter: React.FC<ProductFilterProps> = ({
   minPrice = 0,
   maxPrice = 10000,
@@ -46,14 +43,27 @@ const ProductFilter: React.FC<ProductFilterProps> = ({
   
   const [activeFilters, setActiveFilters] = useState<number>(0);
   
+  // Synchronize local state with initialFilters
   useEffect(() => {
-    let count = 0;
-    if (search.trim()) count++;
-    if (priceRange[0] > minPrice || priceRange[1] < maxPrice) count++;
-    if (stockStatus !== 'all') count++;
-    if (selectedCategories.length > 0) count++;
-    if (selectedSubcategories.length > 0) count++;
-    
+    if (initialFilters) {
+      setSearch(initialFilters.search || '');
+      setPriceRange(initialFilters.priceRange || [minPrice, maxPrice]);
+      setStockStatus(initialFilters.stockStatus || 'all');
+      setSelectedCategories(initialFilters.categories || []);
+      setSelectedSubcategories(initialFilters.subcategories || []);
+    }
+  }, [initialFilters, minPrice, maxPrice]);
+
+  // Handle filter change and active filter count
+  useEffect(() => {
+    const count = [
+      search.trim(),
+      priceRange[0] > minPrice || priceRange[1] < maxPrice,
+      stockStatus !== 'all',
+      selectedCategories.length > 0,
+      selectedSubcategories.length > 0,
+    ].filter(Boolean).length;
+
     setActiveFilters(count);
     
     const timer = setTimeout(() => {
@@ -68,37 +78,16 @@ const ProductFilter: React.FC<ProductFilterProps> = ({
     
     return () => clearTimeout(timer);
   }, [search, priceRange, stockStatus, selectedCategories, selectedSubcategories, minPrice, maxPrice, onFilterChange]);
-  
-  const handleSearchChange = useCallback((value: string) => {
-    setSearch(value);
-  }, []);
-  
-  const handlePriceRangeChange = useCallback((values: [number, number]) => {
-    setPriceRange(values);
-  }, []);
-  
-  const handleStockChange = useCallback((value: 'all' | 'in-stock' | 'out-of-stock') => {
-    setStockStatus(value);
-  }, []);
-  
+
+  // Handlers for filter changes
+  const handleSearchChange = useCallback(setSearch, []);
+  const handlePriceRangeChange = useCallback(setPriceRange, []);
+  const handleStockChange = useCallback(setStockStatus, []);
   const handleCategoryChange = useCallback((categoryId: string, isSelected: boolean) => {
-    setSelectedCategories(prev => {
-      if (isSelected) {
-        return [...prev, categoryId];
-      } else {
-        return prev.filter(id => id !== categoryId);
-      }
-    });
+    setSelectedCategories(prev => isSelected ? [...prev, categoryId] : prev.filter(id => id !== categoryId));
   }, []);
-  
   const handleSubcategoryChange = useCallback((subcategoryId: string, isSelected: boolean) => {
-    setSelectedSubcategories(prev => {
-      if (isSelected) {
-        return [...prev, subcategoryId];
-      } else {
-        return prev.filter(id => id !== subcategoryId);
-      }
-    });
+    setSelectedSubcategories(prev => isSelected ? [...prev, subcategoryId] : prev.filter(id => id !== subcategoryId));
   }, []);
 
   const handleReset = () => {
@@ -108,27 +97,14 @@ const ProductFilter: React.FC<ProductFilterProps> = ({
     setSelectedCategories([]);
     setSelectedSubcategories([]);
     
-    // Call external reset function if provided
     if (onClearFilters) {
       onClearFilters();
     }
   };
-  
-  const containerClass = compact 
-    ? `${className}`
-    : `overflow-hidden ${className}`;
 
-  const contentClass = compact
-    ? "space-y-4"
-    : "space-y-4 mt-4";
-  
-  const scrollAreaClass = compact
-    ? "max-h-[60vh]"
-    : "max-h-[calc(100vh-200px)]";
-  
   return (
-    <div className={containerClass}>
-      <Collapsible open={isOpen} onOpenChange={setIsOpen} className="w-full">
+    <Card className={`rounded-xl shadow-sm bg-white p-4 ${className}`}>
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         {!compact && (
           <FilterHeader 
             isOpen={isOpen}
@@ -138,12 +114,22 @@ const ProductFilter: React.FC<ProductFilterProps> = ({
           />
         )}
         
-        <CollapsibleContent className={contentClass} forceMount>
-          <ScrollArea className={scrollAreaClass}>
-            <div className="space-y-4 pr-3">
-              <SearchInput value={search} onChange={handleSearchChange} />
+        <CollapsibleContent className={`mt-4 space-y-4 ${compact ? '' : 'px-4 pb-4'}`}>
+          <ScrollArea className={compact ? "max-h-[60vh]" : "max-h-[calc(100vh-200px)]"}>
+            <div className="space-y-6">
+              <SearchInput value={search} onChange={handleSearchChange} placeholder="Search products..." />
               
-              <Separator className="my-3" />
+              <PriceRangeSlider 
+                value={priceRange}
+                min={minPrice}
+                max={maxPrice}
+                onChange={handlePriceRangeChange}
+              />
+              
+              <StockFilter 
+                value={stockStatus} 
+                onChange={handleStockChange} 
+              />
               
               <CategoryFilter 
                 selectedCategories={selectedCategories}
@@ -151,26 +137,24 @@ const ProductFilter: React.FC<ProductFilterProps> = ({
                 onCategoryChange={handleCategoryChange}
                 onSubcategoryChange={handleSubcategoryChange}
               />
-              
-              <Separator className="my-3" />
-              
-              <PriceRangeSlider 
-                value={priceRange}
-                max={maxPrice}
-                onChange={handlePriceRangeChange}
-              />
-              
-              <Separator className="my-3" />
-              
-              <StockFilter 
-                value={stockStatus} 
-                onChange={handleStockChange} 
-              />
             </div>
           </ScrollArea>
+
+          {!compact && activeFilters > 0 && (
+            <div className="mt-4 flex justify-end">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleReset}
+                className="text-xs flex items-center gap-1.5 text-gray-600 hover:text-gray-900"
+              >
+                <FilterX className="h-4 w-4" /> Clear Filters
+              </Button>
+            </div>
+          )}
         </CollapsibleContent>
       </Collapsible>
-    </div>
+    </Card>
   );
 };
 

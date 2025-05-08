@@ -1,5 +1,5 @@
 
-import { Product } from '../supabase/product-operations';
+import { Product } from '../supabase/types';
 
 export interface CartItem {
   id: string;

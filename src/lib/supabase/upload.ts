@@ -1,9 +1,7 @@
+
 import { supabase } from './client';
 import { CloudinaryImage } from './types';
-
-const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-const CLOUDINARY_UPLOAD_PRESET = import.meta.env.CLOUDINARY_UPLOAD_PRESET;
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+import { CLOUDINARY_CONFIG, MAX_FILE_SIZE } from '../cloudinary/config';
 
 export async function uploadImage(file: File, productId: number): Promise<string | null> {
   try {
@@ -19,12 +17,16 @@ export async function uploadImage(file: File, productId: number): Promise<string
       throw new Error('File must be an image');
     }
 
+    // Create FormData for direct upload
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    formData.append('upload_preset', CLOUDINARY_CONFIG.uploadPreset);
+    formData.append('cloud_name', CLOUDINARY_CONFIG.cloudName);
 
+    console.log('Uploading with preset:', CLOUDINARY_CONFIG.uploadPreset);
+    
     const response = await fetch(
-      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+      CLOUDINARY_CONFIG.apiUrl,
       {
         method: 'POST',
         body: formData,
@@ -32,7 +34,9 @@ export async function uploadImage(file: File, productId: number): Promise<string
     );
 
     if (!response.ok) {
-      throw new Error(`Upload failed: ${response.status} ${await response.text()}`);
+      const errorText = await response.text();
+      console.error('Upload error:', errorText);
+      throw new Error(`Upload failed: ${response.status} ${errorText}`);
     }
 
     const data = await response.json();

@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/drawer";
 import ProductFilter from '@/components/ProductFilter';
 import { FilterOptions } from '@/components/filters/types';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface FilterDialogProps {
   maxPrice: number;
@@ -44,32 +46,37 @@ const FilterDialog: React.FC<FilterDialogProps> = ({
         <Button 
           variant="outline" 
           size="sm" 
-          className="rounded-full bg-white/20 backdrop-blur-sm border-white/10 text-white flex items-center gap-2"
+          className="rounded-full bg-white/20 backdrop-blur-sm border-white/10 text-white flex items-center gap-2 h-12 w-full"
         >
           <Filter className="h-4 w-4" /> 
           <span>Filters</span>
           {filterCount > 0 && (
-            <span className="ml-1 h-5 min-w-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center px-1.5">
+            <Badge variant="default" className="ml-1 h-5 min-w-5 rounded-full text-xs flex items-center justify-center px-1.5">
               {filterCount}
-            </span>
+            </Badge>
           )}
         </Button>
       </DrawerTrigger>
       <DrawerContent className="max-h-[85vh]">
         <DrawerHeader className="text-left">
-          <DrawerTitle>Filters</DrawerTitle>
+          <DrawerTitle className="flex items-center gap-2">
+            <Filter className="h-4 w-4" /> Filters
+          </DrawerTitle>
           <DrawerDescription>
             Refine your product search with these filters
           </DrawerDescription>
         </DrawerHeader>
-        <div className="px-4 overflow-y-auto flex-1">
-          <ProductFilter
-            maxPrice={maxPrice}
-            onFilterChange={handleFilterChange}
-            initialFilters={initialFilters}
-            onClearFilters={onClearFilters}
-          />
-        </div>
+        <ScrollArea className="px-4 overflow-y-auto flex-1 max-h-[50vh]">
+          <div className="pb-4">
+            <ProductFilter
+              maxPrice={maxPrice}
+              onFilterChange={handleFilterChange}
+              initialFilters={initialFilters}
+              onClearFilters={onClearFilters}
+              compact
+            />
+          </div>
+        </ScrollArea>
         <DrawerFooter className="flex flex-row justify-between border-t p-4">
           <Button 
             variant="outline" 

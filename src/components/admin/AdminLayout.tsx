@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,7 +7,7 @@ import { Loader2, LogOut, Layers, Package, Grid, Home, MessageSquare, ShoppingBa
 import ProductsTab from './ProductsTab';
 import CategoriesTab from './CategoriesTab';
 import SubcategoriesTab from './SubcategoriesTab';
-import FeedbackTab from './FeedbackTab';
+import FeedbackTab from './feedback';
 import OrdersTab from './OrdersTab';
 
 const AdminLayout = () => {

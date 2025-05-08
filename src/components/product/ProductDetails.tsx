@@ -32,7 +32,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
 
   return (
     <Card>
-      <CardContent className="p-6">
+      <CardContent className="p-6 text-left">
         <div className="space-y-4">
           <div>
             <h3 className="text-lg font-semibold mb-2">Product Description</h3>

@@ -1,0 +1,22 @@
+
+/* Ensure feedback dialogs have proper text wrapping */
+.feedback-dialog-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  text-align: left;
+}
+
+/* Improve alignment of dialog content */
+.feedback-dialog {
+  max-width: 90vw;
+  width: 600px;
+}
+
+@media (max-width: 640px) {
+  .feedback-dialog {
+    width: 95vw;
+    padding: 1rem;
+  }
+}

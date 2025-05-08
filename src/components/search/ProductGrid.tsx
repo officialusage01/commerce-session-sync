@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Product } from '@/lib/supabase';
 import ProductCard from '@/components/ProductCard';
@@ -73,7 +74,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   } else {
     // List view
     return (
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col space-y-4">
         {visibleProducts.map((product) => (
           <ProductListItem key={product.id} product={product} />
         ))}

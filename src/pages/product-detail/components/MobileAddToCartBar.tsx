@@ -3,9 +3,9 @@ import React from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useCart } from '@/lib/cart'; // Updated import path
+import { useCart } from '@/lib/cart'; 
 import { toast } from "sonner";
-import { ProductWithRelations } from '@/lib/supabase/product-operations';
+import { ProductWithRelations } from '@/lib/supabase/product-operations/types';
 
 interface MobileAddToCartBarProps {
   product: ProductWithRelations;
@@ -19,13 +19,18 @@ const MobileAddToCartBar = ({ product }: MobileAddToCartBarProps) => {
   if (!isMobile) return null;
   
   const handleAddToCart = () => {
-    if (product) {
-      addToCart(product.id, 1);
-      toast("Item added to cart", {
-        description: `${product.name} has been added to your cart.`,
-        position: "bottom-right"
-      });
+    if (!product) return;
+    
+    if (product.stock <= 0) {
+      toast.error("This product is out of stock");
+      return;
     }
+    
+    addToCart(product.id, 1);
+    toast("Item added to cart", {
+      description: `${product.name} has been added to your cart.`,
+      position: "bottom-right"
+    });
   };
   
   return (

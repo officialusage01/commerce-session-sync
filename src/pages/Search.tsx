@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Product, getCategories, getSubcategories, getProducts } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
@@ -10,7 +11,13 @@ const Search = () => {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [initialProductsLoaded, setInitialProductsLoaded] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
+  const [sidebarFilters, setSidebarFilters] = useState({
+    search: '',
+    priceRange: [0, 1000] as [number, number],
+    stockStatus: 'all' as 'all' | 'in-stock' | 'out-of-stock',
+    categories: [] as string[],
+    subcategories: [] as string[]
+  });
   const isMobile = useIsMobile();
   
   // Optimized product fetching with parallel requests and caching
@@ -78,22 +85,28 @@ const Search = () => {
   return (
     <div className="container py-8">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8 text-center bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+        <h1 className="text-3xl font-bold mb-8 text-center bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
           Search Products
         </h1>
         
-        <div className="flex gap-6">
-          {!isMobile && showFilters && (
-            <aside className="w-64 shrink-0">
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Left sidebar filter - always visible on desktop */}
+          {!isMobile && (
+            <aside className="w-full lg:w-72 lg:shrink-0">
               <ProductFilter
-                onFilterChange={() => {}}
-                initialFilters={{
+                onFilterChange={(filters) => {
+                  setSidebarFilters(filters);
+                }}
+                initialFilters={sidebarFilters}
+                className="sticky top-4"
+                maxPrice={10000}
+                onClearFilters={() => setSidebarFilters({
                   search: '',
-                  priceRange: [0, 1000],
+                  priceRange: [0, 10000],
                   stockStatus: 'all',
                   categories: [],
                   subcategories: []
-                }}
+                })}
               />
             </aside>
           )}
@@ -103,6 +116,8 @@ const Search = () => {
               allProducts={allProducts}
               loading={loading}
               initialProductsLoaded={initialProductsLoaded}
+              useSidebarFilter={!isMobile} // Tell the container if sidebar filter is visible
+              sidebarFilters={sidebarFilters} // Pass the sidebar filters to the search container
             />
           </div>
         </div>

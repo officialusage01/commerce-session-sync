@@ -6,17 +6,23 @@ interface SearchResultsHeaderProps {
   filteredProductsCount: number;
   viewMode: 'grid' | 'list';
   setViewMode: (value: 'grid' | 'list') => void;
+  loading?: boolean;
 }
 
 const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
   filteredProductsCount,
   viewMode,
-  setViewMode
+  setViewMode,
+  loading = false
 }) => {
   return (
     <div className="flex justify-between items-center mb-4">
       <p className="text-sm text-muted-foreground">
-        {filteredProductsCount} products found
+        {loading ? (
+          <span className="animate-pulse">Filtering products...</span>
+        ) : (
+          `${filteredProductsCount} products found`
+        )}
       </p>
       
       <ViewToggle viewMode={viewMode} setViewMode={setViewMode} />

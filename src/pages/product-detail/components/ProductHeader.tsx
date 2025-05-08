@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ProductWithRelations } from '@/lib/supabase/product-operations';
+import { ProductWithRelations } from '@/lib/supabase/product-operations/types';
 
 interface ProductHeaderProps {
   product: ProductWithRelations;

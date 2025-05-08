@@ -15,54 +15,55 @@ const socialLinks = [
     name: 'Facebook',
     icon: Facebook,
     url: 'https://facebook.com',
-    color: 'hover:bg-blue-600',
+    color: 'bg-blue-600', // Changed to background color for better visibility
   },
   {
     name: 'Twitter',
     icon: Twitter,
     url: 'https://twitter.com',
-    color: 'hover:bg-sky-500',
+    color: 'bg-sky-500',
   },
   {
     name: 'Instagram',
     icon: Instagram,
     url: 'https://instagram.com',
-    color: 'hover:bg-pink-600',
+    color: 'bg-pink-600',
   },
   {
     name: 'YouTube',
     icon: Youtube,
     url: 'https://youtube.com',
-    color: 'hover:bg-red-600',
+    color: 'bg-red-600',
   },
   {
     name: 'Telegram',
     icon: Send,
     url: 'https://t.me/yourusername',
-    color: 'hover:bg-blue-500',
+    color: 'bg-blue-500',
   },
   {
     name: 'WhatsApp',
     icon: MessageCircle,
     url: 'https://wa.me/1234567890',
-    color: 'hover:bg-green-500',
+    color: 'bg-green-500',
   },
 ];
 
 const SocialLinks = () => {
   return (
-    <div className="grid grid-cols-3 sm:grid-cols-6 gap-4">
+    <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 p-6">
       {socialLinks.map((social, index) => (
         <motion.div
           key={social.name}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: index * 0.1 }}
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: index * 0.1, damping: 10, stiffness: 100 }}
+          className="flex justify-center items-center"
         >
           <Button
             variant="outline"
             size="lg"
-            className={`w-full h-full aspect-square ${social.color} hover:text-white transition-all duration-300 hover:scale-105`}
+            className={`w-full aspect-square text-white transition-transform duration-300 ease-in-out hover:scale-110 ${social.color}`}
             asChild
           >
             <a
@@ -70,8 +71,9 @@ const SocialLinks = () => {
               target="_blank"
               rel="noopener noreferrer"
               aria-label={`Follow us on ${social.name}`}
+              className="flex justify-center items-center h-full"
             >
-              <social.icon className="h-6 w-6" />
+              <social.icon className="h-8 w-8" />
             </a>
           </Button>
         </motion.div>

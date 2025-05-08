@@ -1,15 +1,15 @@
 
-import { useCart } from '@/lib/cart'; // Updated import path
+import React, { useState } from 'react';
+import { useCart } from '@/lib/cart';
 import { Button } from '@/components/ui/button';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer';
 import { ShoppingCart } from 'lucide-react';
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 
 export function CartDrawer() {
-  const { items, totalItems, totalPrice, removeFromCart, updateQuantity, checkout } = useCart();
+  const { items, totalItems, totalPrice, removeFromCart, updateQuantity, checkout, isLoading } = useCart();
   const [isOpen, setIsOpen] = useState(false);
   const isMobile = useIsMobile();
 
@@ -61,8 +61,13 @@ export function CartDrawer() {
             <DrawerTitle>Your Cart ({totalItems} items)</DrawerTitle>
           </DrawerHeader>
           <div className="p-4">
-            {items.length === 0 ? (
-              <p className="text-center text-muted-foreground">Your cart is empty</p>
+            {isLoading ? (
+              <div className="py-8 text-center">
+                <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
+                <p className="text-sm text-muted-foreground">Loading cart...</p>
+              </div>
+            ) : items.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">Your cart is empty</p>
             ) : (
               <div className="space-y-4">
                 {items.map(item => (
@@ -79,6 +84,7 @@ export function CartDrawer() {
                         variant="outline"
                         size="sm"
                         onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                        disabled={isLoading}
                       >
                         -
                       </Button>
@@ -87,7 +93,7 @@ export function CartDrawer() {
                         variant="outline"
                         size="sm"
                         onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        disabled={item.quantity >= item.product.stock}
+                        disabled={isLoading || item.quantity >= item.product.stock}
                       >
                         +
                       </Button>
@@ -95,6 +101,7 @@ export function CartDrawer() {
                         variant="ghost"
                         size="sm"
                         onClick={() => removeFromCart(item.id)}
+                        disabled={isLoading}
                       >
                         ×
                       </Button>
@@ -109,8 +116,9 @@ export function CartDrawer() {
                   <Button 
                     className="w-full mt-4" 
                     onClick={handleCheckout}
+                    disabled={isLoading || items.length === 0}
                   >
-                    Checkout
+                    {isLoading ? 'Processing...' : 'Checkout'}
                   </Button>
                 </div>
               </div>
