@@ -1,12 +1,12 @@
 
 import React from 'react';
+import { Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search as SearchIcon, X } from 'lucide-react';
 
 interface SearchBarProps {
   searchTerm: string;
-  setSearchTerm: (value: string) => void;
+  setSearchTerm: (term: string) => void;
   handleSearch: (e: React.FormEvent) => void;
   clearSearch: () => void;
 }
@@ -18,25 +18,34 @@ const SearchBar: React.FC<SearchBarProps> = ({
   clearSearch
 }) => {
   return (
-    <form onSubmit={handleSearch} className="flex-1">
-      <div className="relative">
+    <form 
+      className="relative flex-1 flex items-center"
+      onSubmit={handleSearch}
+      role="search"
+    >
+      <div className="relative w-full">
         <Input
-          type="text"
-          placeholder="Search for products..."
+          type="search"
+          placeholder="Search products..."
+          className="w-full pl-10 pr-10 h-12 bg-white/80 backdrop-blur-sm shadow-sm focus-visible:ring-1 focus-visible:ring-primary"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 pr-10 h-12 text-lg shadow-sm transition-shadow duration-200 focus:shadow-md"
         />
-        <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
+        
+        <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+          <Search className="h-4 w-4" />
+        </div>
+        
         {searchTerm && (
           <Button
             type="button"
             variant="ghost"
-            size="icon"
-            className="absolute right-3 top-1/2 transform -translate-y-1/2"
+            size="sm"
             onClick={clearSearch}
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 rounded-full"
           >
-            <X size={18} />
+            <X className="h-4 w-4" />
+            <span className="sr-only">Clear search</span>
           </Button>
         )}
       </div>

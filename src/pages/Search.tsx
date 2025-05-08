@@ -1,25 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { Product, getCategories, getSubcategories, getProducts } from '@/lib/supabase';
-import { Button } from '@/components/ui/button';
-import { Filter } from 'lucide-react';
-import ProductFilter from '@/components/ProductFilter';
-import { useIsMobile } from '@/hooks/use-mobile';
 import SearchContainer from '@/components/search/SearchContainer';
 
 const Search = () => {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [initialProductsLoaded, setInitialProductsLoaded] = useState(false);
-  const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [sidebarFilters, setSidebarFilters] = useState({
-    search: '',
-    priceRange: [0, 1000] as [number, number],
-    stockStatus: 'all' as 'all' | 'in-stock' | 'out-of-stock',
-    categories: [] as string[],
-    subcategories: [] as string[]
-  });
-  const isMobile = useIsMobile();
   
   // Optimized product fetching with parallel requests and caching
   useEffect(() => {
@@ -90,37 +77,12 @@ const Search = () => {
           Search Products
         </h1>
         
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Left sidebar filter - always visible on desktop */}
-          {!isMobile && (
-            <aside className="w-full lg:w-72 lg:shrink-0">
-              <ProductFilter
-                onFilterChange={(filters) => {
-                  setSidebarFilters(filters);
-                }}
-                initialFilters={sidebarFilters}
-                className="sticky top-4"
-                maxPrice={10000}
-                onClearFilters={() => setSidebarFilters({
-                  search: '',
-                  priceRange: [0, 10000],
-                  stockStatus: 'all',
-                  categories: [],
-                  subcategories: []
-                })}
-              />
-            </aside>
-          )}
-          
+        <div className="flex flex-col gap-6">
           <div className="flex-1 min-w-0">
             <SearchContainer 
               allProducts={allProducts}
               loading={loading}
               initialProductsLoaded={initialProductsLoaded}
-              useSidebarFilter={!isMobile} // Tell the container if sidebar filter is visible
-              sidebarFilters={sidebarFilters} // Pass the sidebar filters to the search container
-              showMobileFilters={showMobileFilters}
-              setShowMobileFilters={setShowMobileFilters}
             />
           </div>
         </div>

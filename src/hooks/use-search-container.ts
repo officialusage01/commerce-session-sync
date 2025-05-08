@@ -1,7 +1,6 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Product } from '@/lib/supabase/types';
-import { useProductFilter } from './use-product-filter';
 import { useDebounce } from './use-debounce';
 
 export function useSearchContainer(products: Product[], initialProductsLoaded: boolean) {
@@ -11,45 +10,28 @@ export function useSearchContainer(products: Product[], initialProductsLoaded: b
   const [loadingMore, setLoadingMore] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  const [loading, setLoading] = useState(false);
   
-  // Use the product filter hook
-  const {
-    filters,
-    setFilters,
-    filteredProducts,
-    maxPrice,
-    minPrice,
-    resetFilters,
-    loading: filterLoading
-  } = useProductFilter(products, {
-    search: debouncedSearchTerm,
-    priceRange: [0, 50000],
-    stockStatus: 'all',
-    categories: [],
-    subcategories: []
+  // Filter products based on search term only
+  const filteredProducts = products.filter(product => {
+    if (!debouncedSearchTerm) return true;
+    
+    return (
+      product.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      (product.description && product.description.toLowerCase().includes(debouncedSearchTerm.toLowerCase()))
+    );
   });
   
   // Reset visible count when filters change
   useEffect(() => {
     setVisibleCount(12);
-  }, [filters]);
-  
-  // Update search filter when search term changes - with proper dependency handling
-  useEffect(() => {
-    // Only update if the search term has actually changed
-    if (filters.search !== debouncedSearchTerm) {
-      setFilters(prev => ({
-        ...prev,
-        search: debouncedSearchTerm
-      }));
-    }
-  }, [debouncedSearchTerm, setFilters]);
-  
-  // Load more products when the user scrolls to the bottom
-  const hasMoreProducts = visibleCount < filteredProducts.length;
+  }, [debouncedSearchTerm]);
   
   // Visible products are a slice of filtered products
   const visibleProducts = filteredProducts.slice(0, visibleCount);
+  
+  // Load more products when the user scrolls to the bottom
+  const hasMoreProducts = visibleCount < filteredProducts.length;
   
   // Intersection observer for infinite scroll
   useEffect(() => {
@@ -89,35 +71,18 @@ export function useSearchContainer(products: Product[], initialProductsLoaded: b
     setSearchTerm('');
   }, []);
   
-  // Handle filter changes
-  const handleFilterChange = useCallback((newFilters: any) => {
-    setFilters(prev => ({ ...prev, ...newFilters }));
-  }, [setFilters]);
-  
-  // Clear all filters
-  const handleClearFilters = useCallback(() => {
-    resetFilters();
-    setSearchTerm('');
-  }, [resetFilters]);
-  
   return {
     searchTerm,
     setSearchTerm,
-    filters,
     filteredProducts,
     visibleProducts,
-    maxPrice,
-    minPrice,
     viewMode,
     setViewMode,
     loadingMore,
     hasMoreProducts,
     loadMoreRef,
-    handleFilterChange,
-    handleClearFilters,
     handleSearch,
     clearSearch,
-    filterLoading,
-    setFilters
+    loading
   };
 }
