@@ -1,7 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signIn, getCurrentUser, initializeDatabase, signOut } from '@/lib/supabase';
+import { signIn, signOut } from '@/lib/supabase';
+import { getCurrentUser } from '@/lib/supabase';
+import { initializeDatabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
