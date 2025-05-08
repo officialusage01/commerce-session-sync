@@ -1,50 +1,39 @@
-export type Category = {
-  id: string;  // UUID
-  name: string;
-  icon: string;
-  created_at: string;
-  updated_at: string;
-};
 
-export type Subcategory = {
-  id: string;  // UUID
+export interface Category {
+  id: string;
   name: string;
-  category_id: string;  // UUID
-  icon: string;
+  description?: string;
+  image_url?: string;
   created_at: string;
-  updated_at: string;
-};
+  updated_at?: string;
+}
 
-export type Product = {
-  id: string;  // UUID
+export interface Subcategory {
+  id: string;
+  name: string;
+  description?: string;
+  category_id: string;
+  image_url?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface Product {
+  id: string;
   name: string;
   description: string;
   price: number;
-  subcategory_id: string;  // UUID
   stock: number;
-  images: string[];
+  subcategory_id: string;
+  image_urls: string[];
   created_at: string;
-  updated_at: string;
-};
-
-export interface CloudinaryImage {
-  id: number;
-  url: string;
-  public_id?: string;
-  filename?: string;
-  format?: string;
-  resource_type?: string;
-  created_at?: string;
-  product_id: number;
+  updated_at?: string;
+  featured?: boolean;
+  sku?: string;
+  rating?: number;
 }
 
-export type FilterOptions = {
-  search: string;
-  priceRange: [number, number];
-  stockStatus: 'all' | 'in-stock' | 'out-of-stock';
-  categories: string[];
-  subcategories: string[];
-};
-
-// Alias for backwards compatibility
-export type ProductFilters = FilterOptions;
+export interface ProductWithRelations extends Product {
+  subcategory: Subcategory;
+  category: Category;
+}

@@ -1,63 +1,39 @@
 
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { FilterOptions } from "@/components/filters/types";
 
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+/**
+ * Calculates the active filter count based on filter values
+ */
+export function getActiveFilterCount(
+  filters: FilterOptions,
+  defaultPriceRange: [number, number] = [0, 10000]
+): number {
+  let count = 0;
+  if (filters.search?.trim()) count++;
+  if (filters.stockStatus !== 'all') count++;
+  if (filters.categories?.length > 0) count++;
+  if (filters.subcategories?.length > 0) count++;
+  
+  // Price range is active if it differs from default
+  if (
+    (filters.priceRange?.[0] !== defaultPriceRange[0] || 
+     filters.priceRange?.[1] !== defaultPriceRange[1]) &&
+    filters.priceRange?.[0] !== undefined &&
+    filters.priceRange?.[1] !== undefined
+  ) {
+    count++;
+  }
+  
+  return count;
 }
 
 /**
- * Format a number as currency (INR)
+ * Format currency for display
  */
-export function formatCurrency(value: number): string {
+export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
     currency: 'INR',
-    minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(value);
-}
-
-
-export function debounce<T extends (...args: any[]) => any>(
-  func: T,
-  wait: number
-): (...args: Parameters<T>) => void {
-  let timeout: ReturnType<typeof setTimeout> | null = null;
-  
-  return function(...args: Parameters<T>) {
-    const later = () => {
-      timeout = null;
-      func(...args);
-    };
-    
-    if (timeout !== null) {
-      clearTimeout(timeout);
-    }
-    timeout = setTimeout(later, wait);
-  };
-}
-
-export function getActiveFilterCount(filters: {
-  search: string;
-  priceRange: [number, number];
-  stockStatus: 'all' | 'in-stock' | 'out-of-stock';
-  categories: string[];
-  subcategories: string[];
-}, defaultPriceRange: [number, number]): number {
-  let count = 0;
-  
-  if (filters.search.trim()) count++;
-  if (filters.stockStatus !== 'all') count++;
-  if (filters.priceRange[0] !== defaultPriceRange[0] || 
-      filters.priceRange[1] !== defaultPriceRange[1]) count++;
-  
-  // Categories and subcategories might overlap, so we count them separately
-  count += filters.categories.length;
-  
-  // Only count subcategories that don't belong to selected categories
-  const subcategoriesCount = filters.subcategories.length;
-  if (subcategoriesCount > 0) count += subcategoriesCount;
-  
-  return count;
+  }).format(amount);
 }

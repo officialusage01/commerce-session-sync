@@ -1,11 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
-import { Product, getCategories, getSubcategories, getProducts } from '@/lib/supabase';
+import { Product } from '@/lib/supabase/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Filter, Search, Loader2, ArrowLeft } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import SearchContainer from '@/components/search/SearchContainer';
 import { EnhancedFilterSystem } from '@/components/filters';
+import { FilterOptions } from '@/components/filters/types';
 
 const EnhancedSearch = () => {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
@@ -41,7 +42,7 @@ const EnhancedSearch = () => {
 
         // Fetch categories and subcategories in parallel
         const [categories, subcategoriesArrays] = await Promise.all([
-          getCategories(),
+          getProducts(),
           Promise.all((await getCategories()).map(cat => getSubcategories(cat.id)))
         ]);
 
@@ -90,7 +91,7 @@ const EnhancedSearch = () => {
   }, []);
 
   // Define initial filters with the correct type for priceRange
-  const initialFilters = {
+  const initialFilters: FilterOptions = {
     search: '',
     priceRange: [0, 100000] as [number, number],
     stockStatus: 'all' as 'all' | 'in-stock' | 'out-of-stock',
@@ -98,9 +99,9 @@ const EnhancedSearch = () => {
     subcategories: []
   };
   
-  const [filters, setFilters] = useState(initialFilters);
+  const [filters, setFilters] = useState<FilterOptions>(initialFilters);
   
-  const handleFilterChange = (newFilters: Partial<typeof initialFilters>) => {
+  const handleFilterChange = (newFilters: Partial<FilterOptions>) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
   };
 

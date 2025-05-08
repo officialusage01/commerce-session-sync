@@ -1,6 +1,7 @@
 
-// Re-export everything from database.ts
-export * from './database';
+// Re-export supabase-related functions and types for easier imports
+export * from './supabase';
 export * from './types';
-export { supabase } from './client';
-export { signIn, signOut, getCurrentUser } from './auth';
+export * from './product-operations';
+export * from './category-operations';
+export * from './auth-operations';
