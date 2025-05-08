@@ -1,6 +1,5 @@
 
-import { supabase } from '../client';
-import { handleDatabaseError } from '../db-utils';
+import { supabase } from '../supabase';
 import { Product } from '../types';
 
 export const createProduct = async (product: Omit<Product, 'id' | 'created_at' | 'updated_at'>): Promise<Product | null> => {
@@ -15,7 +14,7 @@ export const createProduct = async (product: Omit<Product, 'id' | 'created_at' |
 
     return data as Product;
   } catch (error) {
-    handleDatabaseError(error, 'creating product');
+    console.error('Error creating product:', error);
     return null;
   }
 };
@@ -37,7 +36,7 @@ export const updateProduct = async (id: string, product: Partial<Product>): Prom
 
     return data as Product;
   } catch (error) {
-    handleDatabaseError(error, 'updating product');
+    console.error('Error updating product:', error);
     return null;
   }
 };
@@ -53,7 +52,7 @@ export const deleteProduct = async (id: string): Promise<boolean> => {
 
     return true;
   } catch (error) {
-    handleDatabaseError(error, 'deleting product');
+    console.error('Error deleting product:', error);
     return false;
   }
 };

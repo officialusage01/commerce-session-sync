@@ -1,5 +1,14 @@
 
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 import { FilterOptions } from "@/components/filters/types";
+
+/**
+ * Utility function to merge className values
+ */
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
 
 /**
  * Calculates the active filter count based on filter values
