@@ -5,10 +5,16 @@ export * from './types';
 export * from './product-operations';
 export * from './category-operations/index';
 export * from './subcategory-operations/index';
-export * from './auth-operations';
-export * from './user-operations';
+
+// Re-export specific functions from auth modules to avoid ambiguity
+export { signIn, signUp, getSession, isAdmin } from './auth-operations';
+export { setupAdminUser } from './auth';
+
+// Re-export user operations
+export { getCurrentUser } from './user-operations';
+
+// Export database setup functions
 export * from './db-setup';
-export * from './auth';
 
 // Override the ProductWithRelations re-export to fix ambiguity
-export { ProductWithRelations } from './types';
+export type { ProductWithRelations } from './types';
