@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { X, Search as SearchIcon, IndianRupee, Tag, Package } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -120,7 +121,7 @@ const AppliedFilters: React.FC<AppliedFiltersProps> = ({
 
           {filters.subcategories
             .filter(subId => !subcategories.some(sub => 
-              sub.id === subId && filters.categories.includes(sub.categoryId)
+              sub.id === subId && filters.categories.includes(sub.category_id)
             ))
             .map(subcategoryId => {
               // Find the subcategory in all loaded subcategories

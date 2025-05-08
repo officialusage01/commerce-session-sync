@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { Product } from '@/lib/supabase/types';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -11,6 +12,8 @@ import ProductFilter from '@/components/ProductFilter';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 import { useQuery } from '@tanstack/react-query';
 import { getProducts } from '@/lib/supabase/product-operations';
+import { Button } from '@/components/ui/button';
+import { Filter } from 'lucide-react';
 
 interface SearchContainerProps {
   allProducts: Product[];

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Product, getCategories, getSubcategories, getProducts } from '@/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -88,10 +89,10 @@ const EnhancedSearch = () => {
     fetchAllProducts();
   }, []);
 
-  // Mock filters for demo
+  // Define initial filters with the correct type for priceRange
   const initialFilters = {
     search: '',
-    priceRange: [0, 100000],
+    priceRange: [0, 100000] as [number, number],
     stockStatus: 'all' as 'all' | 'in-stock' | 'out-of-stock',
     categories: [],
     subcategories: []
