@@ -3,7 +3,6 @@ import React, { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import Header from './Header';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { CartProvider } from '@/lib/cart'; // Updated import path
 import { CartDrawer } from './CartDrawer';
 import { CartDropdown } from './CartDropdown';
 
@@ -19,15 +18,13 @@ const Layout: React.FC = () => {
   }, []);
   
   return (
-    <CartProvider>
-      <div className="min-h-screen flex flex-col">
-        <Header />
-        {isMobile ? <CartDrawer /> : <CartDropdown />}
-        <main className={`flex-1 ${isMobile ? 'pt-14' : ''}`}>
-          <Outlet />
-        </main>
-      </div>
-    </CartProvider>
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      {isMobile ? <CartDrawer /> : <CartDropdown />}
+      <main className={`flex-1 ${isMobile ? 'pt-14' : ''}`}>
+        <Outlet />
+      </main>
+    </div>
   );
 };
 

@@ -7,7 +7,7 @@ export * from './category-operations/index';
 export * from './subcategory-operations/index';
 
 // Re-export specific functions from auth modules to avoid ambiguity
-export { signIn, signUp, getSession, isAdmin } from './auth-operations';
+export { signIn, signUp, signOut, getSession, isAdmin } from './auth-operations';
 export { setupAdminUser } from './auth';
 
 // Re-export user operations
