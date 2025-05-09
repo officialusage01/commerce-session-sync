@@ -1,5 +1,5 @@
 
-import { supabase } from '../supabase';
+import { supabase } from '../client';
 import { Subcategory } from '../types';
 
 export async function getSubcategories(categoryId?: string): Promise<Subcategory[]> {
@@ -15,7 +15,10 @@ export async function getSubcategories(categoryId?: string): Promise<Subcategory
     
     const { data, error } = await query;
     
-    if (error) throw error;
+    if (error) {
+      console.error('Database error fetching subcategories:', error);
+      throw error;
+    }
     
     return data || [];
   } catch (error) {
@@ -32,7 +35,10 @@ export async function createSubcategory(subcategory: Omit<Subcategory, 'id' | 'c
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Database error creating subcategory:', error);
+      throw error;
+    }
     
     return data as Subcategory;
   } catch (error) {
@@ -50,7 +56,10 @@ export async function updateSubcategory(id: string, subcategory: Partial<Subcate
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Database error updating subcategory:', error);
+      throw error;
+    }
     
     return data as Subcategory;
   } catch (error) {
@@ -66,7 +75,10 @@ export async function deleteSubcategory(id: string): Promise<boolean> {
       .delete()
       .eq('id', id);
     
-    if (error) throw error;
+    if (error) {
+      console.error('Database error deleting subcategory:', error);
+      throw error;
+    }
     
     return true;
   } catch (error) {

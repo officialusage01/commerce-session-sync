@@ -1,5 +1,5 @@
 
-import { supabase } from '../supabase';
+import { supabase } from '../client';
 import { Category } from '../types';
 
 export async function getCategories(): Promise<Category[]> {
@@ -9,7 +9,10 @@ export async function getCategories(): Promise<Category[]> {
       .select('*')
       .order('name');
     
-    if (error) throw error;
+    if (error) {
+      console.error('Database error fetching categories:', error);
+      throw error;
+    }
     
     return data || [];
   } catch (error) {
@@ -26,7 +29,10 @@ export async function createCategory(category: Omit<Category, 'id' | 'created_at
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Database error creating category:', error);
+      throw error;
+    }
     
     return data as Category;
   } catch (error) {
@@ -44,7 +50,10 @@ export async function updateCategory(id: string, category: Partial<Category>): P
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Database error updating category:', error);
+      throw error;
+    }
     
     return data as Category;
   } catch (error) {
@@ -60,7 +69,10 @@ export async function deleteCategory(id: string): Promise<boolean> {
       .delete()
       .eq('id', id);
     
-    if (error) throw error;
+    if (error) {
+      console.error('Database error deleting category:', error);
+      throw error;
+    }
     
     return true;
   } catch (error) {

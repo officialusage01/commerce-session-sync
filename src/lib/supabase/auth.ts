@@ -107,13 +107,29 @@ export async function isAdmin(userId: string) {
 export const setupAdminUser = async () => {
   try {
     // First check if user exists
-    const { data } = await supabase.auth.signInWithPassword({
+    const { data: userData, error: userError } = await supabase.auth.signInWithPassword({
       email: 'admin@shopstory.com',
       password: 'shopstory123'
     });
     
-    if (data.user) {
+    if (userData.user) {
       console.log('Admin user already exists');
+      
+      // Ensure there's an entry in the admins table
+      const { data: adminData } = await supabase
+        .from('admins')
+        .select('*')
+        .eq('user_id', userData.user.id)
+        .single();
+        
+      if (!adminData) {
+        // Add user to admins table if not there
+        await supabase
+          .from('admins')
+          .insert([{ user_id: userData.user.id }]);
+        console.log('Added user to admins table');
+      }
+      
       return { success: true, message: 'Admin user already exists' };
     }
     
@@ -132,7 +148,12 @@ export const setupAdminUser = async () => {
     }
 
     if (signUpData.user) {
-      console.log('Admin user created successfully');
+      // Add user to admins table
+      await supabase
+        .from('admins')
+        .insert([{ user_id: signUpData.user.id }]);
+        
+      console.log('Admin user created and added to admins table');
       return { success: true, message: 'Admin user created successfully' };
     }
     

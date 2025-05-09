@@ -2,6 +2,7 @@
 // Re-export supabase-related functions and types for easier imports
 export * from './supabase';
 export * from './types';
+export * from './client';
 export * from './product-operations';
 export * from './category-operations/index';
 export * from './subcategory-operations/index';
@@ -13,4 +14,4 @@ export * from './auth';
 export * from './db-setup';
 
 // Override the ProductWithRelations re-export to fix ambiguity
-export type { ProductWithRelations } from './types';
+export type { ProductWithRelations } from './product-operations/types';

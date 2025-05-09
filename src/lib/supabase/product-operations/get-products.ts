@@ -16,7 +16,10 @@ export const getProducts = async (subcategoryId?: string): Promise<ProductWithRe
     }
 
     const { data: products, error: productsError } = await query;
-    if (productsError) throw productsError;
+    if (productsError) {
+      console.error('Database error fetching products:', productsError);
+      throw productsError;
+    }
     if (!products) return [];
 
     // Get all subcategories
@@ -24,7 +27,10 @@ export const getProducts = async (subcategoryId?: string): Promise<ProductWithRe
       .from('subcategories')
       .select('*');
 
-    if (subcategoriesError) throw subcategoriesError;
+    if (subcategoriesError) {
+      console.error('Database error fetching subcategories:', subcategoriesError);
+      throw subcategoriesError;
+    }
     if (!subcategories) return [];
 
     // Get all categories
@@ -32,7 +38,10 @@ export const getProducts = async (subcategoryId?: string): Promise<ProductWithRe
       .from('categories')
       .select('*');
 
-    if (categoriesError) throw categoriesError;
+    if (categoriesError) {
+      console.error('Database error fetching categories:', categoriesError);
+      throw categoriesError;
+    }
     if (!categories) return [];
 
     // Combine the data
@@ -42,8 +51,8 @@ export const getProducts = async (subcategoryId?: string): Promise<ProductWithRe
 
       return {
         ...product,
-        subcategory: subcategory || { id: '', name: '', category_id: '' },
-        category: category || { id: '', name: '' }
+        subcategory: subcategory || { id: '', name: '', category_id: '', icon: '', created_at: '', updated_at: '' },
+        category: category || { id: '', name: '', icon: '', created_at: '', updated_at: '' }
       };
     });
   } catch (error) {
@@ -61,7 +70,10 @@ export const getFeaturedProducts = async (limit: number = 4): Promise<ProductWit
       .order('created_at', { ascending: false })
       .limit(limit);
 
-    if (productsError) throw productsError;
+    if (productsError) {
+      console.error('Database error fetching featured products:', productsError);
+      throw productsError;
+    }
     if (!products) return [];
 
     // Get all subcategories
@@ -69,7 +81,10 @@ export const getFeaturedProducts = async (limit: number = 4): Promise<ProductWit
       .from('subcategories')
       .select('*');
 
-    if (subcategoriesError) throw subcategoriesError;
+    if (subcategoriesError) {
+      console.error('Database error fetching subcategories for featured products:', subcategoriesError);
+      throw subcategoriesError;
+    }
     if (!subcategories) return [];
 
     // Get all categories
@@ -77,7 +92,10 @@ export const getFeaturedProducts = async (limit: number = 4): Promise<ProductWit
       .from('categories')
       .select('*');
 
-    if (categoriesError) throw categoriesError;
+    if (categoriesError) {
+      console.error('Database error fetching categories for featured products:', categoriesError);
+      throw categoriesError;
+    }
     if (!categories) return [];
 
     // Combine the data
@@ -87,8 +105,8 @@ export const getFeaturedProducts = async (limit: number = 4): Promise<ProductWit
 
       return {
         ...product,
-        subcategory: subcategory || { id: '', name: '', category_id: '' },
-        category: category || { id: '', name: '' }
+        subcategory: subcategory || { id: '', name: '', category_id: '', icon: '', created_at: '', updated_at: '' },
+        category: category || { id: '', name: '', icon: '', created_at: '', updated_at: '' }
       };
     });
   } catch (error) {
