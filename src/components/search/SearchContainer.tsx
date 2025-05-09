@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Product } from '@/lib/supabase/types';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSearchContainer } from '@/hooks/use-search-container';
