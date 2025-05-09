@@ -3,8 +3,20 @@ import { supabase } from '../client';
 import { handleDatabaseError } from '../db-utils';
 import { ProductWithRelations } from './types';
 
+// Simple product cache
+const productCache: { [id: string]: { data: ProductWithRelations, timestamp: number } } = {};
+// Cache expiration time in milliseconds (5 minutes)
+const CACHE_EXPIRATION = 5 * 60 * 1000;
+
 export const getProductById = async (id: string): Promise<ProductWithRelations | null> => {
   try {
+    // Check cache first
+    const now = Date.now();
+    if (productCache[id] && now - productCache[id].timestamp < CACHE_EXPIRATION) {
+      console.log('Using cached product data for ID:', id);
+      return productCache[id].data;
+    }
+    
     console.log('Fetching product by ID:', id);
     
     // Get the product
@@ -47,11 +59,21 @@ export const getProductById = async (id: string): Promise<ProductWithRelations |
     if (!category) return null;
 
     console.log('Product with relations fetched successfully');
-    return {
+    
+    // Build the complete product with relations
+    const productWithRelations = {
       ...product,
       subcategory,
       category
     };
+    
+    // Cache the result
+    productCache[id] = {
+      data: productWithRelations,
+      timestamp: now
+    };
+    
+    return productWithRelations;
   } catch (error) {
     handleDatabaseError(error, 'fetching product by id');
     return null;
