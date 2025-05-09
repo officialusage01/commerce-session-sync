@@ -1,8 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signIn, signOut } from '@/lib/supabase';
-import { getCurrentUser } from '@/lib/supabase';
+import { signIn, signUp, signOut, getCurrentUser, setupAdminUser } from '@/lib/supabase';
 import { initializeDatabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +9,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { supabaseAdmin } from '@/lib/supabase/client';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -25,7 +23,7 @@ const Login = () => {
       setCheckingSession(true);
       try {
         const { data } = await getCurrentUser();
-        if (data.user) {
+        if (data?.user) {
           navigate('/admin');
         }
       } catch (error) {
@@ -38,7 +36,7 @@ const Login = () => {
     checkUser();
     
     // Try to ensure tables are created
-    initializeDatabase();
+    initializeDatabase().catch(err => console.error('Database initialization error:', err));
   }, [navigate]);
   
   const handleLogin = async (e: React.FormEvent) => {
@@ -56,51 +54,67 @@ const Login = () => {
     setLoading(true);
     
     try {
+      // First try to sign in
       const { data, error } = await signIn(email, password);
       
       if (error) {
         // If login fails and it's the demo account, try to create it
         if (email === 'admin@shopstory.com' && password === 'shopstory123') {
+          toast({
+            title: 'Creating admin account',
+            description: 'First time login detected. Setting up admin account...',
+          });
+          
           // Try to create admin user and tables
           await initializeDatabase();
           
-          // Wait a bit for tables to be created
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          // Setup admin user
+          const setupResult = await setupAdminUser();
           
-          // Try to create admin user using admin client
-          const { data: signUpData, error: signUpError } = await supabaseAdmin.auth.signUp({
-            email: 'admin@shopstory.com',
-            password: 'shopstory123',
-            options: {
-              data: { role: 'admin' }
-            }
-          });
-          
-          if (signUpError) {
+          if (!setupResult.success) {
             toast({
               title: 'Setup Failed',
               description: 'Could not create admin account. Please try again later.',
               variant: 'destructive',
             });
+            setLoading(false);
             return;
           }
           
-          if (signUpData.user) {
+          // Try logging in again
+          const { data: newLoginData, error: newLoginError } = await signIn(email, password);
+          
+          if (newLoginError) {
             toast({
-              title: 'Setup Complete',
-              description: 'Admin account created. Please try logging in again.',
+              title: 'Login Failed',
+              description: newLoginError.message || 'Unknown error occurred',
+              variant: 'destructive',
             });
+            setLoading(false);
             return;
           }
+          
+          if (newLoginData?.user) {
+            toast({
+              title: 'Setup Complete',
+              description: 'Admin account created and logged in successfully.',
+            });
+            navigate('/admin');
+            return;
+          }
+        } else {
+          toast({
+            title: 'Login Failed',
+            description: error.message || 'Invalid email or password',
+            variant: 'destructive',
+          });
+          console.error('Login error details:', error);
+          setLoading(false);
+          return;
         }
-        
-        toast({
-          title: 'Login Failed',
-          description: error.message,
-          variant: 'destructive',
-        });
-        console.error('Login error details:', error);
-      } else if (data.user) {
+      }
+      
+      if (data?.user) {
         // Check if user has admin role in their metadata
         const userRole = data.user.user_metadata?.role;
         
@@ -111,6 +125,7 @@ const Login = () => {
             variant: 'destructive',
           });
           await signOut();
+          setLoading(false);
           return;
         }
         
@@ -120,11 +135,11 @@ const Login = () => {
         });
         navigate('/admin');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
       toast({
         title: 'Error',
-        description: 'An unexpected error occurred',
+        description: error?.message || 'An unexpected error occurred',
         variant: 'destructive',
       });
     } finally {

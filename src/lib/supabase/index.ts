@@ -6,12 +6,8 @@ export * from './product-operations';
 export * from './category-operations/index';
 export * from './subcategory-operations/index';
 
-// Re-export specific functions from auth modules to avoid ambiguity
-export { signIn, signUp, signOut, getSession, isAdmin } from './auth-operations';
-export { setupAdminUser } from './auth';
-
-// Re-export user operations
-export { getCurrentUser } from './user-operations';
+// Export auth functions
+export * from './auth';
 
 // Export database setup functions
 export * from './db-setup';
