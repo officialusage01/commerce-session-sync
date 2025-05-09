@@ -32,7 +32,7 @@ export const uploadToCloudinary = async (file: File): Promise<string | null> => 
     if (!response.ok) {
       const errorData = await response.text();
       console.error('Cloudinary error response:', errorData);
-      toast.error("Failed to upload to Cloudinary");
+      toast.error(`Failed to upload to Cloudinary: ${response.status}`);
       throw new Error(`Failed to upload to Cloudinary: ${errorData}`);
     }
 

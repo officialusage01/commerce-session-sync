@@ -1,9 +1,8 @@
 
 // Cloudinary configuration constants
-// Using demo account which is publicly available for testing
 export const CLOUDINARY_CONFIG = {
   cloudName: 'demo',
-  uploadPreset: 'ml_default', // Using the correct preset as requested by the user
+  uploadPreset: 'docs_upload_example', // Updated upload preset that exists in the demo account
   apiUrl: 'https://api.cloudinary.com/v1_1/demo/image/upload'
 };
 

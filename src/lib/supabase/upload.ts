@@ -2,24 +2,29 @@
 import { supabase } from './client';
 import { CloudinaryImage } from './types';
 import { CLOUDINARY_CONFIG, MAX_FILE_SIZE } from '../cloudinary/config';
+import { convertFileToBase64 } from '../cloudinary/utils';
+import { toast } from "sonner";
 
 export async function uploadImage(file: File, productId: number): Promise<string | null> {
   try {
     if (!file) {
+      toast.error('No file provided');
       throw new Error('No file provided');
     }
 
     if (file.size > MAX_FILE_SIZE) {
+      toast.error('File size exceeds 10MB limit');
       throw new Error('File size exceeds 10MB limit');
     }
 
     if (!file.type.startsWith('image/')) {
+      toast.error('File must be an image');
       throw new Error('File must be an image');
     }
 
     // Create FormData for direct upload
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', await convertFileToBase64(file));
     formData.append('upload_preset', CLOUDINARY_CONFIG.uploadPreset);
     formData.append('cloud_name', CLOUDINARY_CONFIG.cloudName);
 
@@ -36,6 +41,7 @@ export async function uploadImage(file: File, productId: number): Promise<string
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Upload error:', errorText);
+      toast.error(`Upload failed: ${response.status}`);
       throw new Error(`Upload failed: ${response.status} ${errorText}`);
     }
 
@@ -53,12 +59,15 @@ export async function uploadImage(file: File, productId: number): Promise<string
     });
 
     if (error) {
+      console.error('Failed to store image metadata:', error);
+      toast.error('Failed to save image information');
       throw new Error(`Failed to store image metadata: ${error.message}`);
     }
 
     return imageUrl;
   } catch (error) {
     console.error('Error uploading image:', error);
+    toast.error('Error uploading image');
     return null;
   }
 }
